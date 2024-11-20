@@ -97,4 +97,54 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-tertiary);
+}
+
+/* Add these global select styles */
+select {
+  color-scheme: dark !important;
+}
+
+select option {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+}
+
+select option:hover,
+select option:focus,
+select option:active,
+select option:checked {
+  background: var(--color-surface-active) !important;
+  color: var(--color-text-primary) !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Firefox specific */
+@-moz-document url-prefix() {
+  select {
+    color-scheme: dark !important;
+  }
+  
+  select option,
+  select option:hover,
+  select option:focus,
+  select option:active {
+    background-color: var(--color-surface-active) !important;
+    color: var(--color-text-primary) !important;
+    border: none !important;
+    outline: none !important;
+  }
+}
+
+/* Webkit specific */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  select option,
+  select option:hover,
+  select option:focus,
+  select option:active {
+    background-color: var(--color-surface-active) !important;
+    color: var(--color-text-primary) !important;
+    border: none !important;
+    outline: none !important;
+  }
 } 
