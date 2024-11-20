@@ -34,6 +34,12 @@
       target: 'CT Smoke from T Ramp'
     }
   ];
+
+  // Icons in the same style as sidebar
+  const sectionIcons = {
+    yourGrenades: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>',
+    recentActivity: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+  };
 </script>
 
 <aside class="user-section">
@@ -55,7 +61,10 @@
   </div>
 
   <section class="your-grenades">
-    <h2>Your Grenades</h2>
+    <h2>
+      <span class="section-icon">{@html sectionIcons.yourGrenades}</span>
+      Your Grenades
+    </h2>
     <ul>
       {#each userGrenades as grenade}
         <li>
@@ -69,7 +78,10 @@
   </section>
 
   <section class="recent-activity">
-    <h2>Recent Activity</h2>
+    <h2>
+      <span class="section-icon">{@html sectionIcons.recentActivity}</span>
+      Recent Activity
+    </h2>
     <ul>
       {#each recentActivity as activity}
         <li>
@@ -165,6 +177,23 @@
     font-size: var(--font-size-base);
     color: var(--color-text-primary);
     margin: 0 0 var(--spacing-3) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+  }
+
+  .section-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-primary);
+  }
+
+  .section-icon svg {
+    width: 16px;
+    height: 16px;
   }
 
   ul {
@@ -178,7 +207,7 @@
 
   li {
     padding: var(--spacing-3);
-    background-color: var(--color-background);
+    background-color: var(--color-surface-hover);
     border-radius: var(--radius-md);
   }
 
