@@ -89,10 +89,24 @@
   // Add this to track sidebar state
   let isMinimized = false;
 
+  // Add this to handle animation delays
+  const getAnimationDelay = (index) => `${index * 200}ms`;
+
   function toggleSubmenu(title, event) {
     // Prevent click from propagating to document
     event.stopPropagation();
-    activeSubmenu = activeSubmenu === title ? null : title;
+    
+    // If we're clicking the same submenu that's already open, close it
+    if (activeSubmenu === title) {
+      activeSubmenu = null;
+      return;
+    }
+    
+    // Close any open tooltips by triggering a click outside event
+    window.dispatchEvent(new MouseEvent('click'));
+    
+    // Open the new submenu
+    activeSubmenu = title;
   }
 
   // Close submenu when clicking outside
@@ -116,11 +130,6 @@
 
 <aside class="sidebar" class:minimized={isMinimized}>
   <div class="sidebar-header">
-    <div class="logo">
-      {#if !isMinimized}
-        <img src="/images/logo_valve.svg" alt="CS Grenade Hub Logo" />
-      {/if}
-    </div>
     <Tooltip text={isMinimized ? "Expand Sidebar" : "Collapse Sidebar"} position="right">
       <button class="toggle-button" on:click={toggleSidebar}>
         <svg 
@@ -139,80 +148,158 @@
         </svg>
       </button>
     </Tooltip>
+    <div class="logo-wrapper">
+      {#if isMinimized}
+        <img src="/images/logo_valve_minimal.svg" alt="CS Grenade Hub Logo" class="logo-minimal" />
+      {:else}
+        <img src="/images/logo_valve.svg" alt="CS Grenade Hub Logo" class="logo-full" />
+      {/if}
+    </div>
   </div>
 
   <nav class="navigation">
-    {#each navigationItems as section}
-      <div 
-        class="nav-item"
-        on:click={(e) => toggleSubmenu(section.title, e)}
-        class:has-active-submenu={activeSubmenu === section.title}
-      >
-        <div class="nav-item-content">
-          <span class="section-icon">
-            {@html section.title === 'MAPS' && section.items.find(category => 
-              category.maps.some(map => map.name === activeSelections[section.title]))
-              ? section.items.find(category => 
+    {#each navigationItems as section, i}
+      {#if isMinimized}
+        <div 
+          class="nav-item"
+          style="animation-delay: {getAnimationDelay(i)}"
+          on:click={(e) => toggleSubmenu(section.title, e)}
+          class:has-active-submenu={activeSubmenu === section.title}
+        >
+          <Tooltip text={section.title.charAt(0) + section.title.slice(1).toLowerCase()} position="right">
+            <div class="nav-item-content">
+              <span class="section-icon">
+                {@html section.title === 'MAPS' && section.items.find(category => 
                   category.maps.some(map => map.name === activeSelections[section.title]))
-                  .maps.find(map => map.name === activeSelections[section.title]).icon
-              : section.items.find(item => item.name === activeSelections[section.title])?.icon || section.icon}
-          </span>
-          <span class="active-selection">{activeSelections[section.title]}</span>
-          {#if section.title === 'GRENADES' && section.items.find(item => item.name === activeSelections[section.title])?.count}
-            <span class="count">
-              {section.items.find(item => item.name === activeSelections[section.title]).count}
-            </span>
-          {/if}
-        </div>
-        
-        {#if activeSubmenu === section.title}
-          <div 
-            class="submenu"
-            on:click={(e) => e.stopPropagation()}
-          >
-            {#if section.title === 'MAPS'}
-              <ul>
-                {#each section.items as category}
-                  <li class="category-header">{category.category}</li>
-                  {#each category.maps as map}
-                    <li 
-                      class:active={activeSelections[section.title] === map.name}
-                      on:click={() => selectItem(section.title, map.name)}
-                    >
-                      <span class="item-icon">{@html map.icon}</span>
-                      {map.name}
-                    </li>
+                  ? section.items.find(category => 
+                      category.maps.some(map => map.name === activeSelections[section.title]))
+                      .maps.find(map => map.name === activeSelections[section.title]).icon
+                  : section.items.find(item => item.name === activeSelections[section.title])?.icon || section.icon}
+              </span>
+            </div>
+          </Tooltip>
+
+          {#if activeSubmenu === section.title}
+            <div 
+              class="submenu"
+              on:click={(e) => e.stopPropagation()}
+            >
+              {#if section.title === 'MAPS'}
+                <ul>
+                  {#each section.items as category}
+                    <li class="category-header">{category.category}</li>
+                    {#each category.maps as map}
+                      <li 
+                        class:active={activeSelections[section.title] === map.name}
+                        on:click={() => selectItem(section.title, map.name)}
+                      >
+                        <span class="item-icon">{@html map.icon}</span>
+                        {map.name}
+                      </li>
+                    {/each}
                   {/each}
-                {/each}
-              </ul>
-            {:else}
-              <ul>
-                <li class="category-header">
-                  {#if section.title === 'GRENADES'}
-                    Grenades
-                  {:else if section.title === 'TEAMS'}
-                    Teams
-                  {:else if section.title === 'FILTERS'}
-                    Filters
-                  {/if}
-                </li>
-                {#each section.items as item}
-                  <li 
-                    class:active={activeSelections[section.title] === item.name}
-                    on:click={() => selectItem(section.title, item.name)}
-                  >
-                    <span class="item-icon">{@html item.icon}</span>
-                    {item.name}
-                    {#if item.count !== undefined}
-                      <span class="count">{item.count}</span>
+                </ul>
+              {:else}
+                <ul>
+                  <li class="category-header">
+                    {#if section.title === 'GRENADES'}
+                      Grenades
+                    {:else if section.title === 'TEAMS'}
+                      Teams
+                    {:else if section.title === 'FILTERS'}
+                      Filters
                     {/if}
                   </li>
-                {/each}
-              </ul>
+                  {#each section.items as item}
+                    <li 
+                      class:active={activeSelections[section.title] === item.name}
+                      on:click={() => selectItem(section.title, item.name)}
+                    >
+                      <span class="item-icon">{@html item.icon}</span>
+                      {item.name}
+                      {#if item.count !== undefined}
+                        <span class="count">{item.count}</span>
+                      {/if}
+                    </li>
+                  {/each}
+                </ul>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {:else}
+        <div 
+          class="nav-item"
+          style="animation-delay: {getAnimationDelay(i)}"
+          on:click={(e) => toggleSubmenu(section.title, e)}
+          class:has-active-submenu={activeSubmenu === section.title}
+        >
+          <div class="nav-item-content">
+            <span class="section-icon">
+              {@html section.title === 'MAPS' && section.items.find(category => 
+                category.maps.some(map => map.name === activeSelections[section.title]))
+                ? section.items.find(category => 
+                    category.maps.some(map => map.name === activeSelections[section.title]))
+                    .maps.find(map => map.name === activeSelections[section.title]).icon
+                : section.items.find(item => item.name === activeSelections[section.title])?.icon || section.icon}
+            </span>
+            <span class="active-selection">{activeSelections[section.title]}</span>
+            {#if section.title === 'GRENADES' && section.items.find(item => item.name === activeSelections[section.title])?.count}
+              <span class="count">
+                {section.items.find(item => item.name === activeSelections[section.title]).count}
+              </span>
             {/if}
           </div>
-        {/if}
-      </div>
+          
+          {#if activeSubmenu === section.title}
+            <div 
+              class="submenu"
+              on:click={(e) => e.stopPropagation()}
+            >
+              {#if section.title === 'MAPS'}
+                <ul>
+                  {#each section.items as category}
+                    <li class="category-header">{category.category}</li>
+                    {#each category.maps as map}
+                      <li 
+                        class:active={activeSelections[section.title] === map.name}
+                        on:click={() => selectItem(section.title, map.name)}
+                      >
+                        <span class="item-icon">{@html map.icon}</span>
+                        {map.name}
+                      </li>
+                    {/each}
+                  {/each}
+                </ul>
+              {:else}
+                <ul>
+                  <li class="category-header">
+                    {#if section.title === 'GRENADES'}
+                      Grenades
+                    {:else if section.title === 'TEAMS'}
+                      Teams
+                    {:else if section.title === 'FILTERS'}
+                      Filters
+                    {/if}
+                  </li>
+                  {#each section.items as item}
+                    <li 
+                      class:active={activeSelections[section.title] === item.name}
+                      on:click={() => selectItem(section.title, item.name)}
+                    >
+                      <span class="item-icon">{@html item.icon}</span>
+                      {item.name}
+                      {#if item.count !== undefined}
+                        <span class="count">{item.count}</span>
+                      {/if}
+                    </li>
+                  {/each}
+                </ul>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/if}
     {/each}
   </nav>
 
@@ -247,15 +334,14 @@
 
   .sidebar-header {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    gap: var(--spacing-4);
     margin-bottom: var(--spacing-4);
-    position: relative;
   }
 
   .toggle-button {
-    position: absolute;
-    right: 0;
+    position: static;
     background-color: var(--color-surface-active);
     border: none;
     border-radius: var(--radius-md);
@@ -276,15 +362,55 @@
     transition: transform 0.3s ease;
   }
 
-  /* Update logo styles */
-  .logo {
-    overflow: hidden;
-    transition: opacity 0.2s ease;
+  .logo-wrapper {
+    margin-top: var(--spacing-4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
-  .minimized .logo {
-    opacity: 0;
-    width: 0;
+  .logo-full,
+  .logo-minimal {
+    height: 32px;
+    width: auto;
+    transition: transform 0.3s ease;
+    animation: scaleIn 0.3s ease forwards;
+  }
+
+  /* Animation für das Ein- und Ausblenden der Logos */
+  @keyframes scaleIn {
+    0% {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Spezifische Animation für das Logo beim Minimieren/Maximieren */
+  .sidebar:not(.minimized) .logo-full {
+    animation: scaleIn 0.3s ease forwards;
+  }
+
+  .minimized .logo-minimal {
+    animation: scaleIn 0.3s ease forwards;
+  }
+
+  /* Optional: Hover-Effekt für beide Logos */
+  .logo-full:hover,
+  .logo-minimal:hover {
+    transform: scale(1.05);
+  }
+
+  /* Remove old logo styles that might conflict */
+  .logo {
+    display: none;
+  }
+
+  .logo-minimal-wrapper {
+    display: none;
   }
 
   /* Update navigation styles for minimized state */
@@ -458,10 +584,21 @@
     padding: var(--spacing-1);
     max-height: 400px;
     overflow-y: auto;
+    scrollbar-gutter: stable; /* Prevents layout shift when scrollbar appears */
   }
 
+  /* Hide scrollbar by default */
   .submenu ul::-webkit-scrollbar {
     width: 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  /* Show scrollbar when hovering/scrolling */
+  .submenu ul:hover::-webkit-scrollbar,
+  .submenu ul:focus::-webkit-scrollbar,
+  .submenu ul:active::-webkit-scrollbar {
+    opacity: 1;
   }
 
   .submenu ul::-webkit-scrollbar-track {
@@ -471,6 +608,27 @@
   .submenu ul::-webkit-scrollbar-thumb {
     background-color: var(--color-border);
     border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .submenu ul:hover::-webkit-scrollbar-thumb,
+  .submenu ul:focus::-webkit-scrollbar-thumb,
+  .submenu ul:active::-webkit-scrollbar-thumb {
+    opacity: 1;
+  }
+
+  /* Firefox specific scrollbar styling */
+  .submenu ul {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s;
+  }
+
+  .submenu ul:hover,
+  .submenu ul:focus,
+  .submenu ul:active {
+    scrollbar-color: var(--color-border) transparent;
   }
 
   .nav-item {
@@ -478,6 +636,66 @@
     padding: var(--spacing-2) var(--spacing-3);
     cursor: pointer;
     border-radius: var(--radius-md);
+    width: 100%;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeIn 0.3s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Add transition for minimized state */
+  .sidebar {
+    background-color: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    padding: var(--spacing-4);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 10;
+    transition: width 0.3s ease;
+  }
+
+  .sidebar.minimized .nav-item {
+    animation: slideInMinimized 0.3s ease forwards;
+  }
+
+  @keyframes slideInMinimized {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Ensure animations play when toggling sidebar state */
+  .minimized .nav-item,
+  .nav-item {
+    animation-fill-mode: both;
+  }
+
+  .nav-item {
+    position: relative;
+    padding: var(--spacing-2) var(--spacing-3);
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    width: 100%;
   }
 
   .nav-item:hover {
@@ -609,12 +827,15 @@
     flex-direction: column;
     justify-content: center;
     gap: var(--spacing-3);
+    padding: var(--spacing-4) 0;
   }
 
   .submit-button-container {
     margin-top: auto;
     padding: var(--spacing-4);
     width: 100%;
+    display: flex;
+    justify-content: center;
   }
 
   .submit-button {
@@ -639,5 +860,61 @@
   .plus-icon {
     font-size: var(--font-size-xl);
     font-weight: bold;
+  }
+
+  /* Add styles for tooltip positioning */
+  .nav-item {
+    position: relative;
+    padding: var(--spacing-2) var(--spacing-3);
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    width: 100%;
+  }
+
+  /* Adjust minimized nav-item styles */
+  .minimized .nav-item {
+    padding: var(--spacing-2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Ensure tooltip trigger area is correct */
+  :global(.minimized .tooltip-trigger) {
+    display: flex;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .tooltip-trigger-wrapper {
+    padding: var(--spacing-2);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  .tooltip-trigger-wrapper:hover {
+    background-color: var(--color-surface-hover);
+  }
+
+  /* Update minimized nav-item styles */
+  .minimized .nav-item {
+    position: relative; /* Ensure submenu positioning works */
+  }
+
+  /* Ensure submenu is positioned correctly */
+  .minimized .submenu {
+    left: calc(100% - -8px);
+    top: 0;
+  }
+
+  .logo-minimal-wrapper {
+    margin-top: var(--spacing-4);
+    display: flex;
+    justify-content: center;
+  }
+
+  .logo-minimal {
+    height: 32px !important; /* Increased from 24px */
+    width: auto !important;
   }
 </style> 
