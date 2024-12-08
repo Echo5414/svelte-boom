@@ -48,7 +48,7 @@
 
 <main class="content">
   <header class="header">
-    <h1>All Grenades</h1>
+    <h1>All Maps</h1>
     
     <div class="header-actions">
       {#if headerVisible}

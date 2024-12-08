@@ -5,89 +5,164 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   
-  const grenadeCounts = {
-    'Smokes': 67,
-    'Molotovs': 14,
-    'Flashbangs': 14,
-    'HE Grenades': 7,
-  };
+  const STRAPI_URL = 'http://localhost:1337';
+  
+  // Add state for maps data
+  let mapsByCategory = [];
+  let isLoading = true;
 
-  const navigationItems = [
-    {
-      title: 'MAPS',
-      icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l6-3l6 3l6-3v15l-6 3l-6-3l-6 3V6z"/></svg>',
-      items: [
-        {
-          category: 'General',
-          maps: [
-            { name: 'All Maps', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5"/></svg>' }
-          ]
-        },
-        {
-          category: 'Active Duty',
-          maps: [
-            { name: 'Ancient', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5"/></svg>' },
-            { name: 'Anubis', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5"/></svg>' },
-            { name: 'Dust 2', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5"/></svg>' },
-            { name: 'Inferno', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5"/></svg>' },
-            { name: 'Mirage', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5"/></svg>' },
-            { name: 'Nuke', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5"/></svg>' },
-            { name: 'Vertigo', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5"/></svg>' }
-          ].sort((a, b) => a.name.localeCompare(b.name))
-        },
-        {
-          category: 'Reserve',
-          maps: [
-            { name: 'Italy', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5"/></svg>' },
-            { name: 'Overpass', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5"/></svg>' },
-            { name: 'Train', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5"/></svg>' }
-          ].sort((a, b) => a.name.localeCompare(b.name))
-        },
-        {
-          category: 'Community',
-          maps: [
-            { name: 'Mills', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5"/></svg>' },
-            { name: 'Thera', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5l10-5l-10-5zM2 17l10 5l10-5M2 12l10 5l10-5"/></svg>' }
-          ].sort((a, b) => a.name.localeCompare(b.name))
-        }
-      ]
-    },
-    {
-      title: 'TEAMS',
-      icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 1 5 5a5 5 0 0 1-5 5a5 5 0 0 1-5-5a5 5 0 0 1 5-5zm0 13c5.523 0 10 2.238 10 5v2H2v-2c0-2.762 4.477-5 10-5z"/></svg>',
-      items: [
-        { name: 'Both Teams', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
-        { name: 'Counter-Terrorist', icon: '<svg width="18" height="18" viewBox="0 0 64 64" fill="currentColor"><path d="M48.9,49.9c-.4-1.4-.8-2.8-1.6-4-.3-.4-.7-.9-.8-1.6.5,0,.9,0,1.3,0,.4,0,.7,0,1.1,0,.3,0,.6,0,.9,0,1.6,0,3.1-.4,4.5-1.2.7-.4,1.3-1,1.7-1.8-1.8-.4-3.5-.8-5.3-1.2.2-.1.2-.2.3-.3,1.5-.4,2.8-1.2,4-2.2,1.2-1,2-2.3,2.3-4h-1.5c-.4,0-.9,0-1.3,0-.4,0-.9,0-1.5-.1.4-.3.7-.5,1.1-.7,1.1-.6,1.9-1.5,2.6-2.5.4-.7.6-1.5.4-2.3-2.8,1.2-3.5,1.5-4.2,1.4,1.6-1.7,2.2-3.8,2-6.1-1.2.5-2,1.5-3.2,1.7.7-2.4,1.1-4.7.3-7.1-1.1.4-1.6,1.4-2.5,2,0-1.6,0-3.1,0-4.6,0-.9-.2-1.7-.4-2.5,0-.2-.2-.3-.4-.5-.6.4-1.1,1-1.8,1.2,0-.1,0-.2,0-.2,0-1.1-.1-2.2-.2-3.3,0-.4-.1-.8-.3-1.2-.3-.6-.4-1.3-1-1.6-.7.3-.7,1.2-1.4,1.3,0,0-.1-.1-.1-.2-.3-1.9-.9-3.8-1.8-5.6-.5-1-1.2-1.9-2.3-2.3-.3,0-.5-.2-.8.2.4.7.8,1.4,1.2,2.1,1.3,2.7,2.7,5.4,3.9,8.2.9,2.1,1.7,4.3,2.6,6.5,1.1,3,1.9,6.2,2.6,9.3.4,1.7.7,3.5.7,5.3,0,.2,0,.4,0,.6,0,.4.1.8.1,1.2,0,1-.2,2-.4,3-.2,1-.6,1.9-1.4,2.7-1,.9-2.3,1.1-3.4.6-.2-.3-.3-.7-.5-1,0-1.3,0-2.6.3-3.9.2-.7.2-1.5.3-2.2-.2-.2-.4-.4-.6-.5-1.6.4-2.9,1.4-4.4,2.3-1.5-1.8-2.7-3.8-4.1-5.6.7-1.5,1.4-2.9,2.1-4.5,0-.7-.2-1.5-.2-2.3,0-3-.1-6-.2-9,0-.6-.3-1.2-.4-1.7-.3-.2-.6-.3-.9-.4-1.1,3.5-2.1,6.9-3.2,10.3.8.4,1.2,1.1,1.2,1.9-.4,1.6-1.4,2-2.9,1.7-.2-.2-.5-.4-.8-.5q-.4-.8-.3-1.8c.4-.5.7-.9,1-1.3-.3-1-.7-2.1-1-3.3-.6-2.1-1.3-4.2-1.9-6.3,0-.2-.2-.4-.4-.7-.3.4-.6.7-.9,1.1,0,.8-.2,1.6-.3,2.5,0,2.5-.2,5.1-.2,7.6,0,.8,0,1.6,0,2.6.6,1.3,1.2,2.8,1.9,4.2-.4.5-.8,1-1.2,1.5-.8,1.1-1.5,2.2-2.3,3.2-.2.3-.4.6-.9.6-1.2-1-2.6-1.8-4.3-2.2-.4.8-.3,1.5-.2,2.2.2,1.2.4,2.5.4,3.7,0,.9-.2,1.5-1,2-1.8.4-3.4-1.1-3.9-2.6-.4-1.2-.6-2.4-.7-3.7,0-1.7.1-3.3.4-4.9.2-1.3.4-2.7.7-4,.7-2.9,1.5-5.7,2.5-8.5,1-2.7,2.1-5.4,3.3-8.1,1.2-2.6,2.6-5.1,3.9-7.7,0-.1.1-.3.2-.4-.6-.3-1,.2-1.3.2-1.1.9-1.9,1.9-2.4,3.1-.5,1.4-1,2.7-1.2,4.2,0,.2-.2.4-.3.7-.5-.6-.9-1-1.4-1.5-1.5,2-1.4,4.3-1.4,6.6-.8-.5-1.4-.9-2.1-1.3,0,.2-.1.2-.2.3-.3.9-.4,1.8-.5,2.7-.1,1-.2,2,0,3,.1.5,0,1,0,1.6-.9-.7-1.6-1.4-2.4-2-.3.5-.6,1.3-.6,2,0,1.5,0,3,.5,4.4,0,.3.2.5-.2.8-1-.6-2-1.3-3-2,0,2.4.6,4.5,2.3,6.5-1.7-.3-3.1-.9-4.5-1.6,0,.9.3,1.7.7,2.4.4.7.8,1.4,1.5,1.9.7.4,1.3.9,2.1,1.4-1.6,0-3,0-4.3,0,0,.2,0,.2,0,.3,0,.1,0,.3,0,.4.4,1.6,1.5,2.8,2.8,3.7.9.6,1.9,1,2.8,1.5.2.1.4.2.8.5-1.9.4-3.6.8-5.3,1.2.2.4.4.6.5.9l.2.2c1.5,1.3,3.3,1.9,5.3,1.9.9,0,1.9.2,2.8,0,.2,0,.5,0,.8,0-.2.3-.3.5-.5.8-.8,1.3-1.5,2.6-1.9,4-.4,1.4-.8,2.9-1,4.3-.2,1.3-.5,2.6-.6,4-.1,1.5,0,3,0,4.5,0,.6,0,1.4.8,1.8,1,0,2,0,3,0,.5,0,.9-.1,1.2-.5.2-3.8.5-7.6,1.6-11.5.3-.2.8-.4,1.2-.6.2,0,.4,0,.6,0,.1,0,.2.3.3.4-.2.4-.4.7-.6,1,.5.5.9,1,1.7,1.1,1.1-1.1,2.4-2.2,3.5-3.4.7-.7,1.4-1.5,1.7-2.5.7-2,1.2-4.1,1.6-6.2.2-1,.3-2,.5-3,.1-1,.2-2.1.4-3.1,0-.1,0-.3,0-.5-.2.1-.3.2-.4.3-1.3,1.8-2.6,3.5-3.9,5.3-1.3,1.7-2.6,3.4-3.8,5.1-1.1,1.4-2.1,2.9-3.1,4.4-.4.6-.8,1.2-.9,2-.2,1.2-.4,2.4-.7,3.7-.4,2-.5,4.1-.6,6.1,0,.2,0,.3,0,.5h-1.4c-.1-.7-.2-1.4-.3-2.1-.1-1.3,0-2.6.2-3.9.2-1.3.5-2.5.8-3.7.4-1.7.8-3.4,1.6-4.9.6-1,1.2-2,1.9-2.9,1.3-1.8,2.5-3.6,3.9-5.3,1.6-2.1,3.2-4.3,4.8-6.4.4-.5.8-1,1.1-1.5.9.5,1,1.5,1.7,2,.9-.5.9-1.6,1.8-2,.4.5.7,1,1,1.4,1.6,2.1,3.1,4.2,4.7,6.2,1.6,2.1,3.2,4.3,4.7,6.5.6.9,1.1,1.8,1.6,2.8.7,1.6,1.1,3.3,1.5,5,.5,1.9.8,3.8.8,5.8,0,.3,0,.7,0,1,0,.7,0,1.4-.4,2h-1.5c0-.3,0-.6,0-.9,0-1.4,0-2.7-.2-4.1-.2-1.6-.5-3.1-.8-4.7-.2-.8-.4-1.7-.9-2.5-1.4-2-2.8-4-4.3-5.9-1.3-1.8-2.7-3.6-4-5.4-1-1.4-2.1-2.8-3.1-4.1,0,.4,0,.8,0,1.2,0,1.7.4,3.3.6,4.9.3,2.2.9,4.4,1.6,6.6.3.8.7,1.4,1.2,2,1.1,1.1,2.2,2.2,3.3,3.3.3.3.7.5,1.1.8.5-.4,1-.8,1.4-1.2-.2-.4-.4-.8-.7-1.2.2-.2.5-.4.6-.6.8.1,1.1.6,1.6,1.1.3,1.2.6,2.5.8,3.7.3,1.5.5,3.1.4,4.6,0,1,0,2.1.4,3.2,1.5.3,3.1.3,4.6,0,.1-.6.3-.9.3-1.3,0-2.4.1-4.8-.2-7.2-.3-1.7-.6-3.4-1-5.1ZM29.6,38c.4.2.7.3.9.4-.4,1.3-.8,2.5-1.3,3.8-.4-.1-.7-.2-1-.3.4-1.3.8-2.5,1.4-3.9ZM34.5,42.2c-.4-1.2-.8-2.4-1.2-3.7.4-.2.7-.3,1-.4.4,1.3.9,2.5,1.2,3.8-.4.1-.6.2-1,.3ZM14.9,45.6c-.6,1.8-1.3,3.5-2,5.2-1.6-1.1-3.1-2-4.6-3.1-1.5-1-3.1-1.6-5-2,.6-1.3,1.8-1.3,2.7-1.8-.3-.5-.9-.6-1.3-.9-1.1-.6-2.1-1.4-2.9-2.3-.7-.8-1.4-1.7-1.7-3,1.4,0,2.8,0,4.3,0-.2-.2-.3-.3-.4-.4-1.4-.8-2.4-1.9-3.2-3.3-.7-1.1-1-2.3-.7-3.6,1.3.2,2.6.7,4,.7-2-2.3-2.9-4.9-2.6-7.9,1.3.4,2.6.9,4.1,1.3-.2-.4-.3-.8-.5-1.1-.5-.7-.7-1.5-.9-2.3-.2-.9-.3-1.7-.3-2.6,0-.7.2-1.2.5-1.9,1,.9,1.9,1.6,2.9,2.6,0-3,0-5.9,1.4-8.6,1.1,1,1.6,2.2,2.5,3.4,0-.3.1-.5.1-.7,0-.6,0-1.3,0-1.9,0-1.6.4-3.1.9-4.5.1-.3.4-.6.6-.9.5.8,1,1.6,1.6,2.4.2-.6.3-1.1.4-1.5.2-1.1.6-2.1,1-3.1.3-.7.8-1.2,1.5-1.8.2.7.4,1.2.6,1.9.9-1.3,1.6-2.6,3.1-3.4,0,.3,0,.5,0,.6-.3.4-.4.9-.5,1.4,0,.2-.1.5-.2.7-.3.8-.6,1.7-1,2.6-.2-.3-.4-.6-.6-.9-.6,0-.9.4-1.1.9-.6,1-1,2-1.2,3.1-.1.5-.1,1.1-.2,1.6,0,.2-.1.3-.2.6-.5-.4-.9-.8-1.3-1.2-.8.8-1.1,1.8-1.3,2.8-.3,1.3-.1,2.6-.2,4-.8-.4-1-1.3-1.8-1.7-.2.4-.5.8-.6,1.2-.3.8-.4,1.6-.4,2.5,0,1.2,0,2.3,0,3.7-.9-.7-1.6-1.3-2.3-1.9-.5,1.1-.2,2.2-.3,3.4,0,1.2.2,2.3.5,3.5-1.1-.4-2.1-.8-3.1-1.2-.4,2,.4,4.3,2.1,6.3-.8,0-1.6,0-2.4,0,.1,3,1.8,5.1,4,6.8-1.2.3-2.4.6-3.6,1,0,.8.5,1.3.9,1.7,1.6,1.8,3.7,2.9,6.2,3.1.9,0,1.7.2,2.6.3ZM62.3,37.7h1.6c-.2.5-.3.9-.5,1.3-.9,1.7-2.3,2.9-3.9,3.9-.5.3-1,.6-1.6,1,.9.6,2.1.6,2.7,1.7-.2.1-.3.3-.5.3-2,.3-3.7,1.3-5.3,2.4-1.2.8-2.4,1.6-3.7,2.5-.6-.7-.7-1.6-1.1-2.5-.4-.9-.7-1.8-1-2.7,1-.1,1.8-.2,2.8-.3,1.3,0,2.5-.5,3.6-1.1,1.5-.8,2.7-2,3.5-3.7-1.3-.3-2.5-.6-3.8-1,2.2-1.8,3.9-3.8,4-6.9h-2.5c1.8-1.8,2.4-3.9,2.3-6.3-1.1.3-2.1.7-3.2,1.2.7-2.3.7-4.6.3-7-.8.6-1.6,1.2-2.4,1.9,0-1.5,0-2.7,0-4,0-1.2-.3-2.4-1.1-3.5-.6.7-1.1,1.2-1.8,2,0-2,.1-3.8-.6-5.6-.2-.5-.5-.9-.8-1.5-.5.5-.9.8-1.4,1.3,0-.2-.2-.4-.2-.6-.1-1.6-.6-3.1-1.3-4.5-.2-.5-.5-.9-1.1-1.1-.2.3-.4.6-.7,1-.2-.6-.4-1.2-.5-1.8-.2-.6-.6-1.1-.6-1.8,0-.6-.4-1.1-.5-1.7,1.5.6,2.2,1.9,3.1,3.3.2-.7.4-1.3.6-1.9,1,.7,1.6,1.6,1.9,2.6.4,1.2.7,2.3,1,3.5.7-.6,1-1.5,1.6-2.3.2.3.5.6.6.9.3.9.5,1.8.7,2.7.3,1.2.2,2.4.2,3.5,0,.3,0,.5,0,1,1-1.2,1.5-2.4,2.5-3.4.7.7.9,1.6,1.1,2.4.3,1.5.3,3.1.5,4.6,0,.4,0,.8-.2,1.4,1.2-.7,2-1.6,3-2.5.6,1.4.6,2.7.3,4.1-.2,1.4-.8,2.5-1.6,3.9,1.5-.5,2.8-.9,4.2-1.4.3,3-.6,5.5-2.5,7.8.7.3,1.3,0,2-.2.7,0,1.3-.3,2-.5,0,.2.2.5.2.6,0,.5-.1,1-.2,1.7-.7,2-2.2,3.6-4.3,4.9.6.2,1,0,1.5.1.4,0,.9,0,1.3,0ZM31.6,38.6h.8v3.5c-.2,0-.4,0-.7,0-.2-.6,0-1.2,0-1.8,0-.6,0-1.1,0-1.8Z"/></svg>' },
-        { name: 'Terrorist', icon: '<svg width="18" height="18" viewBox="0 0 64 64" fill="currentColor"><path d="M24.3,20.9l-10.8-7.5,13.6.2L31.5.6l4.1,12.7,13.8.2-11.1,8,4.4,12.5-11.3-7.5-11.1,7.3,4.1-12.8ZM62.8,25.6c-1.2,1.1-2.5,2.3-4.1,3.7-1.4,1.2-3.9,2.9-7.2,5.1-.9.6-2.1,1.4-3.7,2.4-1.3.8-2.2,1.5-2.7,1.9l-5.3,4.1-.4-.5h-.4c-.3-.1-.6-.3-1-.7-.4-.3-.5-.6-.3-.9.1-.1.2-.2.2-.3,0-.1.1-.2.1-.3,0-.3-.1-.4-.3-.5-.2,0-.4,0-.6.2-.3.3-.4.6-.5,1-.1.5,0,1,.3,1.4l1.1,1.4c.1.2.2.3.2.3,0,.1,0,.2-.1.3,0,0-1,.6-2.8,1.6-1.1.7-2.2,1.3-3.2,2-1-.7-2.1-1.4-3.2-2-1.8-1-2.7-1.5-2.8-1.6-.1,0-.1-.2-.1-.3,0,0,0-.2.2-.3l1.1-1.4c.3-.4.4-.9.3-1.4-.1-.4-.3-.8-.6-1-.2-.2-.4-.3-.6-.2-.2,0-.3.2-.3.5,0,0,0,.2.1.3,0,0,.1.1.2.3.1.3,0,.5-.3.9-.3.3-.7.5-1,.6h-.4s-.4.6-.4.6l-5.3-4.1c-.6-.4-1.5-1.1-2.7-1.9-1.6-1-2.8-1.8-3.7-2.4-3.4-2.2-5.8-3.9-7.2-5.1-1.6-1.3-2.9-2.5-4.1-3.7l-1.3-1.3v1.9c.1,1.5.3,2.6.6,3.5.5,1.5,1.4,2.9,2.7,4.4,1.2,1.3,2.7,2.7,4.5,4.2l8.5,6.6h.2c0,.1.1,0,.3-.1.3-.2.5-.3.6-.3.3-.2.7-.2,1-.2.4,0,.8.2,1.2.5.4.3.7.7.9,1.1.3.6.4,1.2.3,1.9,0,.3-.1.6-.2.8-.2.4-.5.6-.8.6-.2,0-.3-.1-.3-.1-.1,0-.2,0-.3,0-.3.1-.4.3-.4.4,0,.2.1.4.4.5.3.2.7.3,1.1.3.5,0,1-.2,1.3-.6l1.1-1.4c.1-.2.2-.3.3-.3.1,0,.2,0,.3,0,0,0,.8.8,2.2,2.3.5.5,1.1,1,1.6,1.5-1,.9-2.1,1.8-3.1,2.8-.9.9-1.8,1.7-2.6,2.5-.3.2-.6.3-1.1.2-.2,0-.5-.1-.8-.3-.2,0-.4,0-.5,0-.1,0-.2.2-.2.5,0,.2.5.9,1.3,2,0,.2,0,.4,0,.7,0,.2.2.5.3.7.2.2.4.4.6.5.2.1.4.2.6.1.9,1.2,1.5,1.8,1.8,1.9.2,0,.4,0,.5,0,.1-.1.2-.3.2-.5,0-.4,0-.7,0-.9,0-.4.2-.8.4-1,1-.6,2-1.3,3.1-1.9,1.7-1.1,3.2-2.1,4.6-3.1,1.4,1,2.9,2.1,4.6,3.1,1.1.7,2.1,1.3,3.1,1.9.3.2.4.5.4,1,0,.2,0,.6-.1.9,0,.2,0,.3.2.5.1.1.3.1.5,0,.2,0,.8-.7,1.8-1.9.2,0,.4,0,.6-.1.2-.1.4-.3.6-.5.2-.2.3-.4.3-.7,0-.2,0-.4,0-.7.9-1.1,1.3-1.8,1.3-2,0-.2,0-.4-.2-.5-.1-.1-.3-.1-.5,0-.3.2-.6.2-.9.3-.4.1-.8,0-1.1-.2-.8-.8-1.7-1.6-2.6-2.5-1.1-1-2.1-1.9-3.1-2.8.5-.5,1.1-1,1.6-1.5,1.4-1.5,2.1-2.3,2.2-2.3.1,0,.2,0,.3,0,0,0,.2.1.3.3l1.1,1.4c.3.4.8.6,1.3.6.4,0,.8,0,1.1-.3.3-.2.4-.3.4-.5,0-.2-.1-.3-.4-.4,0,0-.2,0-.3,0,0,0-.2,0-.3.1-.3,0-.5-.1-.8-.6-.1-.2-.2-.5-.2-.8,0-.7,0-1.3.3-1.9.2-.4.5-.8.9-1.1.4-.3.8-.5,1.2-.5.4,0,.7,0,1.1.2,0,0,.2.1.6.3.2.1.3.2.3.2,0,0,0,0,.2-.1l8.5-6.6c1.8-1.4,3.3-2.8,4.5-4.2,1.3-1.5,2.2-3,2.7-4.4.3-.8.5-2,.5-3.5v-1.9s-1.2,1.3-1.2,1.3Z"/></svg>' }
-      ]
-    },
-    {
-      title: 'GRENADES',
-      icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>',
-      items: [
-        { name: 'All Grenades', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>', count: Object.values(grenadeCounts).reduce((a, b) => a + b, 0) },
-        { name: 'Flashbangs', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3m0 12v3M3 12h3m12 0h3m-3.5-6.5l-2 2m-7 7l-2 2m0-11l2 2m7 7l2 2"/></svg>', count: grenadeCounts['Flashbangs'] },
-        { name: 'HE Grenades', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l4 4-4 4-4-4 4-4zm0 20l4-4-4-4-4 4 4 4z"/></svg>', count: grenadeCounts['HE Grenades'] },
-        { name: 'Molotovs', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v5m0 0c3 3 6 5 6 8a6 6 0 1 1-12 0c0-3 3-5 6-8z"/></svg>', count: grenadeCounts['Molotovs'] },
-        { name: 'Smokes', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>', count: grenadeCounts['Smokes'] }
-      ].sort((a, b) => {
+  // Add teams state
+  let teams = [];
+
+  // Add state for grenade types
+  let grenadeTypes = [];
+
+  // Add state for collections
+  let collections = [];
+
+  // Fetch maps data on mount
+  onMount(async () => {
+    try {
+      // Fetch maps
+      const mapsResponse = await fetch(`${STRAPI_URL}/api/maps?populate=*`);
+      const mapsData = await mapsResponse.json();
+      
+      // Fetch teams
+      const teamsResponse = await fetch(`${STRAPI_URL}/api/teams?populate=*`);
+      const teamsData = await teamsResponse.json();
+
+      // Fetch grenade types
+      const typesResponse = await fetch(`${STRAPI_URL}/api/types?populate=*`);
+      const typesData = await typesResponse.json();
+
+      // Fetch collections
+      const collectionsResponse = await fetch(`${STRAPI_URL}/api/collections?populate=*`);
+      const collectionsData = await collectionsResponse.json();
+      
+      // Process collections data
+      collections = collectionsData.data.map(collection => ({
+        name: collection.name,
+        value: collection.value,
+        icon: collection.icon || null
+      }));
+
+      // Process teams data
+      teams = teamsData.data.map(team => ({
+        name: team.name,
+        value: team.value,
+        icon: team.icon || null
+      })).sort((a, b) => {
+        // Custom sort order: Both Teams first, then CT, then T
+        const order = { 'Both Teams': 0, 'Counter-Terrorists': 1, 'Terrorists': 2 };
+        return order[a.name] - order[b.name];
+      });
+
+      // Process grenade types data and sort them
+      grenadeTypes = typesData.data.map(type => ({
+        name: type.name,
+        value: type.value,
+        icon: type.icon || null,
+        count: grenadeCounts[type.name] || 0
+      })).sort((a, b) => {
         if (a.name === 'All Grenades') return -1;
         if (b.name === 'All Grenades') return 1;
         return a.name.localeCompare(b.name);
-      })
+      });
+
+      // Group maps by category
+      const groupedMaps = mapsData.data.reduce((acc, map) => {
+        const category = map.category?.name || 'Uncategorized';
+        
+        if (!acc.find(g => g.category === category)) {
+          acc.push({
+            category: category,
+            maps: []
+          });
+        }
+
+        const group = acc.find(g => g.category === category);
+        group.maps.push({
+          name: map.name,
+          icon: map.icon || null
+        });
+
+        return acc;
+      }, []);
+
+      // Sort maps within each category
+      groupedMaps.forEach(group => {
+        group.maps.sort((a, b) => a.name.localeCompare(b.name));
+      });
+
+      // Sort categories with custom order: General first, Active Duty second, Reserve third, Community fourth, then others
+      groupedMaps.sort((a, b) => {
+        const categoryOrder = {
+          'General': 0,
+          'Active Duty': 1,
+          'Reserve': 2,
+          'Community': 3
+        };
+        
+        const orderA = categoryOrder[a.category] !== undefined ? categoryOrder[a.category] : 4;
+        const orderB = categoryOrder[b.category] !== undefined ? categoryOrder[b.category] : 4;
+        
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        
+        return a.category.localeCompare(b.category);
+      });
+
+      mapsByCategory = groupedMaps;
+      isLoading = false;
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      isLoading = false;
+    }
+  });
+
+  const grenadeCounts = {
+    'Smoke Grenade': 67,
+    'Molotov': 14,
+    'Flashbang': 14,
+    'High Explosive Grenade': 7,
+    'Decoy Grenade': 0
+  };
+
+  // Only keep the reset icon
+  const resetIcon = `<svg id="Ebene_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 20.3 14">
+    <defs>
+      <style>
+        .st0 {
+          fill:currentColor;
+          fill-rule: evenodd;
+        }
+      </style>
+    </defs>
+    <path class="st0" d="M20.3,11V3c0-1.7-1.3-3-3-3H6.5c-.9,0-1.7.4-2.3,1-.8,1-2.4,2.8-3.5,4-1,1.1-1,2.8,0,4,1.1,1.2,2.7,3,3.5,4,.6.7,1.4,1,2.3,1h10.8c1.7,0,3-1.3,3-3ZM9.9,7l-1.3,1.3c-.4.4-.4,1,0,1.4.4.4,1,.4,1.4,0l1.3-1.3,1.3,1.3c.4.4,1,.4,1.4,0,.4-.4.4-1,0-1.4l-1.3-1.3,1.3-1.3c.4-.4.4-1,0-1.4-.4-.4-1-.4-1.4,0l-1.3,1.3-1.3-1.3c-.4-.4-1-.4-1.4,0-.4.4-.4,1,0,1.4l1.3,1.3Z"/>
+  </svg>`;
+
+  // Update navigationItems to use collections
+  $: navigationItems = [
+    {
+      title: 'MAPS',
+      items: mapsByCategory
     },
     {
-      title: 'CATEGORIES',
-      icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>',
-      items: [
-        { name: 'No Category', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>' },
-        { name: 'Favourites', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>' },
-        { name: 'Schwabenschmiede1337', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>' }
-      ]
+      title: 'TEAMS',
+      items: teams
+    },
+    {
+      title: 'GRENADES',
+      items: grenadeTypes
+    },
+    {
+      title: 'COLLECTIONS',
+      items: collections
     },
     {
       title: 'RESET',
-      icon: '<svg class="reset-icon" width="18" height="18" viewBox="0 0 20.3 14" fill="currentColor"><defs><style>.st0{fill-rule:evenodd}</style></defs><path class="st0" d="M20.3,11V3c0-1.7-1.3-3-3-3H6.5c-.9,0-1.7.4-2.3,1-.9,1-2.4,2.8-3.5,4-1,1.1-1,2.8,0,4,1.1,1.2,2.7,3,3.5,4,.6.7,1.4,1,2.3,1h10.8c1.7,0,3-1.3,3-3ZM9.9,7l-1.3,1.3c-.4.4-.4,1,0,1.4s1,.4,1.4,0l1.3-1.3,1.3,1.3c.4.4,1,.4,1.4,0s.4-1,0-1.4l-1.3-1.3,1.3-1.3c.4-.4.4-1,0-1.4s-1-.4-1.4,0l-1.3,1.3-1.3-1.3c-.4-.4-1-.4-1.4,0s-.4,1,0,1.4l1.3,1.3Z"/></svg>',
+      icon: resetIcon,
       items: []
     }
   ];
@@ -97,8 +172,8 @@
     'MAPS': 'All Maps',
     'TEAMS': 'Both Teams',
     'GRENADES': 'All Grenades',
-    'CATEGORIES': 'No Category',
-    'RESET': 'Reset'
+    'COLLECTIONS': 'No Collection',
+    'RESET': 'Reset Filters'
   };
 
   let activeSubmenu = null;
@@ -167,8 +242,8 @@
       'MAPS': 'All Maps',
       'TEAMS': 'Both Teams',
       'GRENADES': 'All Grenades',
-      'CATEGORIES': 'No Category',
-      'RESET': 'Reset'  // Add this line to maintain the Reset text
+      'COLLECTIONS': 'No Collection',
+      'RESET': 'Reset Filters'
     };
     activeSubmenu = null;
   }
@@ -226,12 +301,23 @@
               }}
             >
               <span class="section-icon">
-                {@html section.title === 'MAPS' && section.items.find(category => 
-                  category.maps.some(map => map.name === activeSelections[section.title]))
-                  ? section.items.find(category => 
-                      category.maps.some(map => map.name === activeSelections[section.title]))
-                      .maps.find(map => map.name === activeSelections[section.title]).icon
-                  : section.items.find(item => item.name === activeSelections[section.title])?.icon || section.icon}
+                {#if section.title === 'MAPS' && activeSelections[section.title]}
+                  {#each mapsByCategory as category}
+                    {#each category.maps as map}
+                      {#if map.name === activeSelections[section.title]}
+                        {#if map.icon}
+                          <span class="item-icon">
+                            {@html map.icon}
+                          </span>
+                        {:else}
+                          <span class="item-icon"></span>
+                        {/if}
+                      {/if}
+                    {/each}
+                  {/each}
+                {:else}
+                  {@html section.icon}
+                {/if}
               </span>
             </div>
           </Tooltip>
@@ -243,18 +329,28 @@
             >
               {#if section.title === 'MAPS'}
                 <ul>
-                  {#each section.items as category}
-                    <li class="category-header">{category.category}</li>
-                    {#each category.maps as map}
-                      <li 
-                        class:active={activeSelections[section.title] === map.name}
-                        on:click={() => selectItem(section.title, map.name)}
-                      >
-                        <span class="item-icon">{@html map.icon}</span>
-                        {map.name}
-                      </li>
+                  {#if isLoading}
+                    <li class="loading">Loading maps...</li>
+                  {:else}
+                    {#each mapsByCategory as category}
+                      <li class="category-header">{category.category}</li>
+                      {#each category.maps as map}
+                        <li 
+                          class:active={activeSelections[section.title] === map.name}
+                          on:click={() => selectItem(section.title, map.name)}
+                        >
+                          {#if map.icon}
+                            <span class="item-icon">
+                              {@html map.icon}
+                            </span>
+                          {:else}
+                            <span class="item-icon"></span>
+                          {/if}
+                          {map.name}
+                        </li>
+                      {/each}
                     {/each}
-                  {/each}
+                  {/if}
                 </ul>
               {:else}
                 <ul>
@@ -263,8 +359,8 @@
                       Grenades
                     {:else if section.title === 'TEAMS'}
                       Teams
-                    {:else if section.title === 'CATEGORIES'}
-                      Categories
+                    {:else if section.title === 'COLLECTIONS'}
+                      Collections
                     {/if}
                   </li>
                   {#each section.items as item}
@@ -272,7 +368,11 @@
                       class:active={activeSelections[section.title] === item.name}
                       on:click={() => selectItem(section.title, item.name)}
                     >
-                      <span class="item-icon">{@html item.icon}</span>
+                      <span class="item-icon">
+                        {#if item.icon}
+                          {@html item.icon}
+                        {/if}
+                      </span>
                       <span class="item-name text-truncate">{item.name}</span>
                       {#if item.count !== undefined}
                         <span class="count">{item.count}</span>
@@ -299,12 +399,21 @@
         >
           <div class="nav-item-content">
             <span class="section-icon">
-              {@html section.title === 'MAPS' && section.items.find(category => 
-                category.maps.some(map => map.name === activeSelections[section.title]))
-                ? section.items.find(category => 
-                    category.maps.some(map => map.name === activeSelections[section.title]))
-                    .maps.find(map => map.name === activeSelections[section.title]).icon
-                : section.items.find(item => item.name === activeSelections[section.title])?.icon || section.icon}
+              {#if section.title === 'MAPS' && activeSelections[section.title]}
+                {#each mapsByCategory as category}
+                  {#each category.maps as map}
+                    {#if map.name === activeSelections[section.title]}
+                      {#if map.icon}
+                        <span class="item-icon">
+                          {@html map.icon}
+                        </span>
+                      {/if}
+                    {/if}
+                  {/each}
+                {/each}
+              {:else}
+                {@html section.items.find(item => item.name === activeSelections[section.title])?.icon || section.icon}
+              {/if}
             </span>
             <span class="active-selection text-truncate">{activeSelections[section.title]}</span>
             {#if section.title === 'GRENADES' && section.items.find(item => item.name === activeSelections[section.title])?.count}
@@ -321,18 +430,28 @@
             >
               {#if section.title === 'MAPS'}
                 <ul>
-                  {#each section.items as category}
-                    <li class="category-header">{category.category}</li>
-                    {#each category.maps as map}
-                      <li 
-                        class:active={activeSelections[section.title] === map.name}
-                        on:click={() => selectItem(section.title, map.name)}
-                      >
-                        <span class="item-icon">{@html map.icon}</span>
-                        {map.name}
-                      </li>
+                  {#if isLoading}
+                    <li class="loading">Loading maps...</li>
+                  {:else}
+                    {#each mapsByCategory as category}
+                      <li class="category-header">{category.category}</li>
+                      {#each category.maps as map}
+                        <li 
+                          class:active={activeSelections[section.title] === map.name}
+                          on:click={() => selectItem(section.title, map.name)}
+                        >
+                          {#if map.icon}
+                            <span class="item-icon">
+                              {@html map.icon}
+                            </span>
+                          {:else}
+                            <span class="item-icon"></span>
+                          {/if}
+                          {map.name}
+                        </li>
+                      {/each}
                     {/each}
-                  {/each}
+                  {/if}
                 </ul>
               {:else}
                 <ul>
@@ -341,8 +460,8 @@
                       Grenades
                     {:else if section.title === 'TEAMS'}
                       Teams
-                    {:else if section.title === 'CATEGORIES'}
-                      Categories
+                    {:else if section.title === 'COLLECTIONS'}
+                      Collections
                     {/if}
                   </li>
                   {#each section.items as item}
@@ -350,7 +469,11 @@
                       class:active={activeSelections[section.title] === item.name}
                       on:click={() => selectItem(section.title, item.name)}
                     >
-                      <span class="item-icon">{@html item.icon}</span>
+                      <span class="item-icon">
+                        {#if item.icon}
+                          {@html item.icon}
+                        {/if}
+                      </span>
                       <span class="item-name text-truncate">{item.name}</span>
                       {#if item.count !== undefined}
                         <span class="count">{item.count}</span>
@@ -399,6 +522,22 @@
 />
 
 <style>
+  /* Base icon styles - keep them consistent without hover/active changes */
+  .item-icon,
+  .section-icon {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* SVG specific styles - ensure consistent appearance */
+  .item-icon svg,
+  .section-icon svg {
+    width: 18px;
+    height: 18px;
+  }
 
   .sidebar {
     background-color: var(--color-surface);
@@ -712,11 +851,11 @@
     display: block;
   }
 
-  .has-active-submenu {
+/*   .has-active-submenu {
     position: relative;
     background-color: var(--color-surface-hover);
     color: var(--color-text-primary);
-  }
+  } */
 
   .submenu ul {
     padding: var(--spacing-1);
@@ -855,20 +994,20 @@
 
   .section-icon,
   .item-icon {
-    width: 22px;
-    height: 22px;
-    display: inline-flex;
+    width: 18px;
+    height: 18px;
+    display: flex;
     align-items: center;
     justify-content: center;
     color: var(--color-text-primary);
   }
 
-  .nav-item:hover .section-icon,
+/*   .nav-item:hover .section-icon,
   .nav-item-button:hover .section-icon,
   li:hover .item-icon,
   li.active .item-icon {
     color: var(--color-text-primary);
-  }
+  } */
 
   .section-icon svg,
   .item-icon svg {
@@ -876,11 +1015,11 @@
     height: 18px;
   }
 
-  .active-selection {
+/*   .active-selection {
     font-size: var(--font-size-base);
     flex: 1;
-    min-width: 0; /* Ensures truncation works in flex container */
-  }
+    min-width: 0; 
+  } */
 
   .category-header {
     padding: var(--spacing-2) var(--spacing-3);
@@ -1187,6 +1326,105 @@
   .item-name {
     flex: 1;
     min-width: 0; /* This ensures text truncation works in flex containers */
+  }
+
+  /* Add these new styles */
+  .loading {
+    color: var(--color-text-secondary);
+    padding: var(--spacing-3);
+    text-align: center;
+  }
+
+  .item-icon img {
+    width: 18px;
+    height: 18px;
+    display: block;
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease;
+  }
+
+  /* Color for active/hover state */
+/*   li:hover .item-icon img,
+  li.active .item-icon img,
+  .nav-item:hover .section-icon img,
+  .nav-item-button:hover .section-icon img,
+  .has-active-submenu .section-icon img {
+    color: var(--color-text-primary);
+  } */
+
+  .section-icon img {
+    width: 18px;
+    height: 18px;
+    display: block;
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease;
+  }
+
+/*   .nav-item:hover .section-icon img,
+  .nav-item-button:hover .section-icon img,
+  .has-active-submenu .section-icon img {
+    color: var(--color-text-primary);
+  } */
+
+  /* Update the icon styles to handle stroke instead of fill */
+  .item-icon svg {
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease;
+  }
+
+/*   li:hover .item-icon svg,
+  li.active .item-icon svg {
+    color: var(--color-text-primary);
+  } */
+
+  .section-icon svg {
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease;
+  }
+
+/*   .nav-item:hover .section-icon svg,
+  .nav-item-button:hover .section-icon svg,
+  .has-active-submenu .section-icon svg {
+    color: var(--color-text-primary);
+  } */
+
+  /* Base styles for all SVGs */
+  .item-icon svg,
+  .section-icon svg {
+    width: 18px;
+    height: 18px;
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease;
+  }
+
+  /* Hover and active states */
+/*   li:hover .item-icon svg,
+  li.active .item-icon svg,
+  .nav-item:hover .section-icon svg,
+  .nav-item-button:hover .section-icon svg,
+  .has-active-submenu .section-icon svg {
+    color: var(--color-text-primary);
+  } */
+
+  /* Add this to prevent text selection in the navigation */
+  .nav-item,
+  .nav-item-content,
+  .item-name,
+  .active-selection,
+  .submenu li,
+  .count {
+    user-select: none;
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+/Edge */
+  }
+
+  /* Keep text selection enabled for loading state */
+  .loading {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
   }
 
 </style> 

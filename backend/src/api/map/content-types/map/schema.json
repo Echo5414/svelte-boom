@@ -14,25 +14,8 @@
   "attributes": {
     "name": {
       "type": "string",
-      "required": true
-    },
-    "category": {
-      "type": "enumeration",
-      "enum": [
-        "active",
-        "reserve",
-        "community"
-      ],
-      "required": true
-    },
-    "icon": {
-      "type": "media",
-      "multiple": false,
-      "required": false,
-      "allowedTypes": [
-        "files",
-        "images"
-      ]
+      "required": true,
+      "unique": true
     },
     "thumbnail": {
       "type": "media",
@@ -42,6 +25,19 @@
         "files",
         "images"
       ]
+    },
+    "category": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::category.category"
+    },
+    "value": {
+      "type": "string",
+      "unique": true,
+      "required": true
+    },
+    "icon": {
+      "type": "text"
     }
   }
 }

@@ -1,11 +1,10 @@
 {
   "kind": "collectionType",
-  "collectionName": "types",
+  "collectionName": "categories",
   "info": {
-    "singularName": "type",
-    "pluralName": "types",
-    "displayName": "Type",
-    "description": ""
+    "singularName": "category",
+    "pluralName": "categories",
+    "displayName": "Category"
   },
   "options": {
     "draftAndPublish": true
@@ -14,14 +13,13 @@
   "attributes": {
     "name": {
       "type": "string",
-      "required": true
+      "required": true,
+      "unique": true
     },
     "value": {
       "type": "string",
+      "unique": true,
       "required": true
-    },
-    "icon": {
-      "type": "text"
     }
   }
 }

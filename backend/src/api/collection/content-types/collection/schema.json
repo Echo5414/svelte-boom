@@ -1,11 +1,10 @@
 {
   "kind": "collectionType",
-  "collectionName": "types",
+  "collectionName": "collections",
   "info": {
-    "singularName": "type",
-    "pluralName": "types",
-    "displayName": "Type",
-    "description": ""
+    "singularName": "collection",
+    "pluralName": "collections",
+    "displayName": "Collection"
   },
   "options": {
     "draftAndPublish": true
@@ -18,7 +17,8 @@
     },
     "value": {
       "type": "string",
-      "required": true
+      "required": true,
+      "unique": true
     },
     "icon": {
       "type": "text"
