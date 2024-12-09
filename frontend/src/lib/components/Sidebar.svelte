@@ -270,6 +270,34 @@
       collection: 'No Collection'
     });
   });
+
+  // Add this helper function at the top of your script section
+  function findMapIcon(mapsByCategory, mapName) {
+    for (const category of mapsByCategory) {
+      for (const map of category.maps) {
+        if (map.name === mapName) {
+          return map.icon || '';
+        }
+      }
+    }
+    return '';
+  }
+
+  // Add this reactive statement near the top of your script section
+  $: currentIcon = (section, activeSelection) => {
+    if (section.title === 'MAPS') {
+      if (activeSelection === 'All Maps') {
+        return mapsByCategory[0]?.maps[0]?.icon || '';
+      }
+      return findMapIcon(mapsByCategory, activeSelection);
+    } else if (section.title === 'RESET') {
+      return `<svg id="icon_reset" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 20.3 14">
+        <path fill="currentColor" fill-rule="evenodd" d="M20.3,11V3c0-1.7-1.3-3-3-3H6.5c-.9,0-1.7.4-2.3,1-.8,1-2.4,2.8-3.5,4-1,1.1-1,2.8,0,4,1.1,1.2,2.7,3,3.5,4,.6.7,1.4,1,2.3,1h10.8c1.7,0,3-1.3,3-3ZM9.9,7l-1.3,1.3c-.4.4-.4,1,0,1.4.4.4,1,.4,1.4,0l1.3-1.3,1.3,1.3c.4.4,1,.4,1.4,0,.4-.4.4-1,0-1.4l-1.3-1.3,1.3-1.3c.4-.4.4-1,0-1.4-.4-.4-1-.4-1.4,0l-1.3,1.3-1.3-1.3c-.4-.4-1-.4-1.4,0-.4.4-.4,1,0,1.4l1.3,1.3Z"/>
+      </svg>`;
+    } else {
+      return section.items.find(item => item.name === activeSelection)?.icon || '';
+    }
+  };
 </script>
 
 <svelte:window on:click={handleClickOutside}/>
@@ -330,50 +358,14 @@
           <Tooltip text={section.title === 'RESET' ? 'Reset Filters' : section.title.charAt(0) + section.title.slice(1).toLowerCase()} position="right">
             <div class="nav-item-button">
               <span class="section-icon">
-                {#if section.title === 'MAPS'}
-                  {#if activeSelections[section.title] === 'All Maps'}
-                    {@html mapsByCategory[0]?.maps[0]?.icon || ''}
-                  {:else}
-                    {#each mapsByCategory as category}
-                      {#each category.maps as map}
-                        {#if map.name === activeSelections[section.title] && map.icon}
-                          {@html map.icon}
-                        {/if}
-                      {/each}
-                    {/each}
-                  {/if}
-                {:else if section.title === 'RESET'}
-                  <svg id="icon_reset" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 20.3 14">
-                    <path fill="currentColor" fill-rule="evenodd" d="M20.3,11V3c0-1.7-1.3-3-3-3H6.5c-.9,0-1.7.4-2.3,1-.8,1-2.4,2.8-3.5,4-1,1.1-1,2.8,0,4,1.1,1.2,2.7,3,3.5,4,.6.7,1.4,1,2.3,1h10.8c1.7,0,3-1.3,3-3ZM9.9,7l-1.3,1.3c-.4.4-.4,1,0,1.4.4.4,1,.4,1.4,0l1.3-1.3,1.3,1.3c.4.4,1,.4,1.4,0,.4-.4.4-1,0-1.4l-1.3-1.3,1.3-1.3c.4-.4.4-1,0-1.4-.4-.4-1-.4-1.4,0l-1.3,1.3-1.3-1.3c-.4-.4-1-.4-1.4,0-.4.4-.4,1,0,1.4l1.3,1.3Z"/>
-                  </svg>
-                {:else}
-                  {@html section.items.find(item => item.name === activeSelections[section.title])?.icon || ''}
-                {/if}
+                {@html currentIcon(section, activeSelections[section.title])}
               </span>
             </div>
           </Tooltip>
         {:else}
           <div class="nav-item-button">
             <span class="section-icon">
-              {#if section.title === 'MAPS'}
-                {#if activeSelections[section.title] === 'All Maps'}
-                  {@html mapsByCategory[0]?.maps[0]?.icon || ''}
-                {:else}
-                  {#each mapsByCategory as category}
-                    {#each category.maps as map}
-                      {#if map.name === activeSelections[section.title] && map.icon}
-                        {@html map.icon}
-                      {/if}
-                    {/each}
-                  {/each}
-                {/if}
-              {:else if section.title === 'RESET'}
-                <svg id="icon_reset" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 20.3 14">
-                  <path fill="currentColor" fill-rule="evenodd" d="M20.3,11V3c0-1.7-1.3-3-3-3H6.5c-.9,0-1.7.4-2.3,1-.8,1-2.4,2.8-3.5,4-1,1.1-1,2.8,0,4,1.1,1.2,2.7,3,3.5,4,.6.7,1.4,1,2.3,1h10.8c1.7,0,3-1.3,3-3ZM9.9,7l-1.3,1.3c-.4.4-.4,1,0,1.4.4.4,1,.4,1.4,0l1.3-1.3,1.3,1.3c.4.4,1,.4,1.4,0,.4-.4.4-1,0-1.4l-1.3-1.3,1.3-1.3c.4-.4.4-1,0-1.4-.4-.4-1-.4-1.4,0l-1.3,1.3-1.3-1.3c-.4-.4-1-.4-1.4,0-.4.4-.4,1,0,1.4l1.3,1.3Z"/>
-                </svg>
-              {:else}
-                {@html section.items.find(item => item.name === activeSelections[section.title])?.icon || ''}
-              {/if}
+              {@html currentIcon(section, activeSelections[section.title])}
             </span>
             <span class="active-selection text-truncate">
               {activeSelections[section.title]}
@@ -477,40 +469,63 @@
 </aside>
 
 <style>
-  /* Base icon styles */
-  .section-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    color: var(--color-text-secondary);
+  /* Keyframes */
+  @keyframes scaleIn {
+    0% {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
-  .section-icon :global(svg) {
-    width: 18px;
-    height: 18px;
-    color: inherit;
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
-  /* Force all SVG elements to inherit color */
-  .section-icon :global(svg *),
-  .item-icon :global(svg *) {
-    fill: currentColor !important;
-    stroke: none !important;
-    color: inherit !important;
+  @keyframes submenuFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
-  /* Brighten icon only when a non-default selection is active */
-  .nav-item[data-selected="true"] .section-icon {
-    color: var(--color-text-primary);
+  @keyframes submenuFadeOut {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
   }
 
-  /* Keep hover effect for all items */
-  .nav-item:hover .section-icon {
-    color: var(--color-text-primary);
+  @keyframes submenuItemFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
+  /* Sidebar */
   .sidebar {
     background-color: var(--color-surface);
     border-right: 1px solid var(--color-border);
@@ -530,6 +545,7 @@
     width: 72px;
   }
 
+  /* Sidebar Header */
   .sidebar-header {
     display: flex;
     flex-direction: column;
@@ -576,7 +592,6 @@
     transform: scale(1.02);
   }
 
-  /* Add focus styles for accessibility */
   .logo-wrapper:focus {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
@@ -595,19 +610,6 @@
     animation: scaleIn 0.3s ease forwards;
   }
 
-  /* Animation für das Ein- und Ausblenden der Logos */
-  @keyframes scaleIn {
-    0% {
-      transform: scale(0.8);
-      opacity: 0;
-    }
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
-
-  /* Spezifische Animation für das Logo beim Minimieren/Maximieren */
   .sidebar:not(.minimized) .logo-full {
     animation: scaleIn 0.3s ease forwards;
   }
@@ -616,13 +618,11 @@
     animation: scaleIn 0.3s ease forwards;
   }
 
-  /* Optional: Hover-Effekt für beide Logos */
   .logo-full:hover,
   .logo-minimal:hover {
     transform: scale(1.05);
   }
 
-  /* Remove old logo styles that might conflict */
   .logo {
     display: none;
   }
@@ -631,136 +631,131 @@
     display: none;
   }
 
-  /* Update navigation styles for minimized state */
-  .minimized .nav-item-content .active-selection,
-  .minimized .nav-item-content .count {
-    display: none;
+  .logo-minimal {
+    height: 34px !important;
+    width: auto !important;
   }
 
-  .minimized .nav-item {
-    /* padding: var(--spacing-2); */
+  /* Navigation */
+  .navigation {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     justify-content: center;
-  }
-
-  .minimized .section-icon {
-    margin: 0;
-  }
-
-  /* Update submit button for minimized state */
-  .minimized .submit-button-container {
-    display: flex;
-    justify-content: center;
-  }
-
-/*   .minimized .submit-button {
-    width: 34px;
-    height: 34px;
-  } */
-
-  .logo {
-    display: flex;
-    align-items: center;
     gap: var(--spacing-2);
-    font-size: var(--font-size-lg);
-    color: var(--color-text-primary);
-    padding: var(--spacing-4);
+    padding: var(--spacing-4) var(--spacing-2);
   }
 
-  .icon {
-    color: var(--color-primary);
-  }
-
-  nav {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-6);
-  }
-
-  .maps-section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-2);
-  }
-
-  h2 {
-    font-size: var(--font-size-sm);
-    color: var(--color-text-secondary);
-    padding: 0 var(--spacing-2);
-    margin: 0;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-  }
-
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-1);
-  }
-
-  li {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-2);
+  /* Nav item */
+  .nav-item {
+    position: relative;
+    width: 100%;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeIn 0.3s ease forwards;
+    cursor: pointer;
+    border-radius: var(--radius-md);
     padding: var(--spacing-2) var(--spacing-3);
-    color: var(--color-text-secondary);
+  }
+
+  .nav-item:hover {
+    background-color: var(--color-surface-hover);
+  }
+
+  .nav-item[data-selected="true"] .section-icon {
+    color: var(--color-text-primary);
+  }
+
+  .nav-item:hover .section-icon {
+    color: var(--color-text-primary);
+  }
+
+  /* When minimized */
+  .minimized .nav-item {
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: slideInMinimized 0.3s ease forwards;
+  }
+
+  @keyframes slideInMinimized {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Nav item button/content */
+  .nav-item-button {
+    padding: var(--spacing-1);
     border-radius: var(--radius-md);
     cursor: pointer;
-    transition: all 0.2s;
-    font-size: var(--font-size-base);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
     width: 100%;
   }
 
-  li:hover {
-    background-color: var(--color-surface-hover);
-    color: var(--color-text-primary);
+  .nav-item-content {
+    padding: var(--spacing-2);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    background-color: var(--color-surface);
   }
 
-  li.active {
+  .nav-item-content:hover {
     background-color: var(--color-surface-hover);
-    color: var(--color-text-primary);
   }
 
-  .map-icon {
-    opacity: 0.7;
-    font-size: var(--font-size-sm);
-    width: 20px;
-    display: inline-flex;
+  .minimized .nav-item-button {
+    padding: 0;
+    height: 42px;
+    width: 42px;
+    display: flex;
     align-items: center;
     justify-content: center;
+    margin: 0 auto;
+    border-radius: var(--radius-md);
   }
 
-  .count {
-    margin-left: auto;
-    font-size: var(--font-size-sm);
+  /* Icons */
+  .section-icon,
+  .item-icon {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--color-text-secondary);
-    min-width: 24px;
-    text-align: right;
+    transition: color 0.2s ease;
   }
 
-  .type-icon {
-    width: 20px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+  .section-icon :global(svg),
+  .item-icon :global(svg) {
+    width: 18px;
+    height: 18px;
+    color: inherit;
+    fill: currentColor !important;
+    stroke: none !important;
   }
 
-  .grenade-types li {
-    font-size: var(--font-size-sm);
+  /* Hover and active states for icons */
+  .submenu li:hover .item-icon,
+  .submenu li.active .item-icon,
+  .nav-item:hover .section-icon,
+  .nav-item.has-active-submenu .section-icon {
+    color: var(--color-text-primary);
   }
 
-  .grenades-section {
-    margin-top: var(--spacing-4);
-  }
-
-  .logo img {
-    height: var(--logo-height);
-    width: var(--logo-width);
-    fill: var(--logo-color);
-  }
-
+  /* Submenu */
   .submenu {
     position: absolute;
     left: calc(100% - -8px);
@@ -776,78 +771,20 @@
     animation: submenuFadeIn 0.25s ease forwards;
   }
 
-  @keyframes submenuFadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(-4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Optional: Add animation for submenu exit */
   .submenu.closing {
     animation: submenuFadeOut 0.25s ease forwards;
   }
-
-  @keyframes submenuFadeOut {
-    from {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    to {
-      opacity: 0;
-      transform: translateY(-4px);
-    }
-  }
-
-  .nav-item::after,
-  .submenu::before {
-    display: none;
-  }
-
-  .nav-item::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: -16px;
-    width: 16px;
-    height: 100%;
-    background: transparent;
-  }
-
-  .nav-item:hover .submenu,
-  .submenu:hover {
-    display: block;
-  }
-
-/*   .has-active-submenu {
-    position: relative;
-    background-color: var(--color-surface-hover);
-    color: var(--color-text-primary);
-  } */
 
   .submenu ul {
     padding: var(--spacing-1);
     max-height: 400px;
     overflow-y: auto;
-    scrollbar-gutter: stable; /* Prevents layout shift when scrollbar appears */
+    scrollbar-gutter: stable;
   }
 
-  /* Hide scrollbar by default */
+  /* Scrollbar styling */
   .submenu ul::-webkit-scrollbar {
     width: 8px;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-
-  /* Show scrollbar when hovering/scrolling */
-  .submenu ul:hover::-webkit-scrollbar,
-  .submenu ul:focus::-webkit-scrollbar,
-  .submenu ul:active::-webkit-scrollbar {
-    opacity: 1;
   }
 
   .submenu ul::-webkit-scrollbar-track {
@@ -857,17 +794,8 @@
   .submenu ul::-webkit-scrollbar-thumb {
     background-color: var(--color-border);
     border-radius: 4px;
-    opacity: 0;
-    transition: opacity 0.3s;
   }
 
-  .submenu ul:hover::-webkit-scrollbar-thumb,
-  .submenu ul:focus::-webkit-scrollbar-thumb,
-  .submenu ul:active::-webkit-scrollbar-thumb {
-    opacity: 1;
-  }
-
-  /* Firefox specific scrollbar styling */
   .submenu ul {
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
@@ -880,199 +808,95 @@
     scrollbar-color: var(--color-border) transparent;
   }
 
-  .nav-item {
-    position: relative;
-    /* padding: var(--spacing-2) var(--spacing-3); */
-    cursor: pointer;
+  .submenu li {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-2) var(--spacing-3);
+    color: var(--color-text-secondary);
     border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: var(--font-size-base);
     width: 100%;
     opacity: 0;
     transform: translateY(10px);
-    animation: fadeIn 0.3s ease forwards;
+    animation: submenuItemFadeIn 0.3s ease forwards;
   }
 
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Add transition for minimized state */
-  .sidebar {
-    background-color: var(--color-surface);
-    border-right: 1px solid var(--color-border);
-    padding: var(--spacing-2);
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    width: 240px;
-    position: sticky;
-    top: 0;
-    left: 0;
-    z-index: 10;
-    transition: width 0.3s ease;
-  }
-
-  .sidebar.minimized .nav-item {
-    animation: slideInMinimized 0.3s ease forwards;
-  }
-
-  @keyframes slideInMinimized {
-    from {
-      opacity: 0;
-      transform: translateX(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  /* Ensure animations play when toggling sidebar state */
-  .minimized .nav-item,
-  .nav-item {
-    animation-fill-mode: both;
-  }
-
-  .nav-item {
-    position: relative;
-    /* padding: var(--spacing-2) var(--spacing-3); */
-    cursor: pointer;
-    border-radius: var(--radius-md);
-    width: 100%;
-  }
-
-  .nav-item:hover {
+  .submenu li:hover {
     background-color: var(--color-surface-hover);
-  }
-
-  .nav-item-content {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-3);
-    color: var(--color-text-primary);
-    width: 100%;
-  }
-
-  .nav-item-content .count {
-    margin-left: auto;
-  }
-
-
-  .section-icon,
-  .item-icon {
-    width: 18px;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     color: var(--color-text-primary);
   }
 
-/*   .nav-item:hover .section-icon,
-  .nav-item-button:hover .section-icon,
-  li:hover .item-icon,
-  li.active .item-icon {
+  .submenu li.active {
+    background-color: var(--color-surface-hover);
     color: var(--color-text-primary);
-  } */
-
-  .section-icon svg,
-  .item-icon svg {
-    width: 18px;
-    height: 18px;
   }
 
-/*   .active-selection {
-    font-size: var(--font-size-base);
-    flex: 1;
-    min-width: 0; 
-  } */
-
-  .category-header {
-    padding: var(--spacing-2) var(--spacing-3);
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    background-color: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
-    margin-top: var(--spacing-2);
+  .submenu li.category-header {
+    opacity: 1;
+    transform: none;
+    animation: none;
     cursor: default;
     user-select: none;
-  }
-
-  .category-header:first-child {
-    margin-top: 0;
-  }
-
-  .category-header:hover {
     background-color: var(--color-surface);
-    color: var(--color-text-secondary);
-  }
-
-  .submenu ul {
-    padding: var(--spacing-1);
-  }
-
-  li.active {
-    background-color: var(--color-surface-hover);
-    color: var(--color-text-primary);
-  }
-
-  .category-header {
+    border-bottom: 1px solid var(--color-border);
+    margin-top: var(--spacing-2);
     padding: var(--spacing-2) var(--spacing-3);
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);
     font-weight: 500;
-    background-color: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
-    margin-top: var(--spacing-2);
   }
 
   .category-header:first-child {
     margin-top: 0;
   }
 
-  .submenu ul::-webkit-scrollbar {
-    width: 8px;
+  /* Staggered animation for submenu items */
+  .submenu li:nth-child(1) { animation-delay: 0.05s; }
+  .submenu li:nth-child(2) { animation-delay: 0.1s; }
+  .submenu li:nth-child(3) { animation-delay: 0.15s; }
+  .submenu li:nth-child(4) { animation-delay: 0.2s; }
+  .submenu li:nth-child(5) { animation-delay: 0.25s; }
+  .submenu li:nth-child(6) { animation-delay: 0.3s; }
+  .submenu li:nth-child(7) { animation-delay: 0.35s; }
+  .submenu li:nth-child(8) { animation-delay: 0.4s; }
+  .submenu li:nth-child(9) { animation-delay: 0.45s; }
+  .submenu li:nth-child(10) { animation-delay: 0.5s; }
+
+  /* Text truncation */
+  .text-truncate {
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
   }
 
-  .submenu ul::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .submenu ul::-webkit-scrollbar-thumb {
-    background-color: var(--color-border);
-    border-radius: 4px;
-  }
-
-
-
-  /* Submenu icons (dimmed by default, bright on hover) */
-  .submenu .item-icon {
-    color: var(--color-text-secondary);
-  }
-
-  /* Brighten icon and text on hover or active state */
-  .submenu li:hover .item-icon,
-  .submenu li.active .item-icon {
-    color: var(--color-text-primary);
-  }
-
-
-  .navigation {
+  .item-name {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: var(--spacing-2);
-    padding: var(--spacing-4) var(--spacing-2);
+    min-width: 0;
   }
 
+  /* Counts */
+  .count {
+    margin-left: auto;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    min-width: 24px;
+    text-align: right;
+  }
+
+  /* Loading state */
+  .loading {
+    color: var(--color-text-secondary);
+    padding: var(--spacing-3);
+    text-align: center;
+    user-select: text;
+  }
+
+  /* Submit button */
   .submit-button-container {
     margin-top: auto;
     padding: var(--spacing-2);
@@ -1094,8 +918,13 @@
     font-size: var(--font-size-base);
     font-weight: var(--font-weight-medium);
     overflow: hidden;
-    height: 42px; /* Fixed height to prevent jumping */
-    white-space: nowrap; /* Prevent text wrapping */
+    height: 42px;
+    white-space: nowrap;
+  }
+
+  .sidebar:not(.minimized) .submit-button {
+    width: 100%;
+    padding: 0 var(--spacing-4);
   }
 
   .minimized .submit-button {
@@ -1104,282 +933,7 @@
     padding: 0;
   }
 
-  .sidebar:not(.minimized) .submit-button {
-    width: 100%;
-    padding: 0 var(--spacing-4);
-  }
-
-  .button-text {
-    opacity: 0;
-    transform: scale(0.8);
-    animation: scaleIn 0.3s ease forwards;
-    animation-delay: 0.15s;
-  }
-
-  .plus-icon {
-    opacity: 0;
-    transform: scale(0.8);
-    animation: scaleIn 0.3s ease forwards;
-    animation-delay: 0.15s;
-    font-size: var(--font-size-xl);
-    font-weight: bold;
-  }
-
-  @keyframes scaleIn {
-    from {
-      opacity: 0;
-      transform: scale(0.8);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  /* Add styles for tooltip positioning */
-  .nav-item {
-    position: relative;
-    padding: var(--spacing-2) var(--spacing-3);
-    cursor: pointer;
-    border-radius: var(--radius-md);
-    width: 100%;
-  }
-
-  /* Adjust minimized nav-item styles */
-  .minimized .nav-item {
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .minimized .nav-item-wrapper:last-child,
-  .nav-item:last-child {
-    margin-top: var(--spacing-4);
-  }
-
-  /* Ensure tooltip trigger area is correct */
-  :global(.minimized .tooltip-trigger) {
-    display: flex;
-    justify-content: center;
-    padding: 0;
-  }
-
-  .tooltip-trigger-wrapper {
-    padding: var(--spacing-2);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-  }
-
-  .tooltip-trigger-wrapper:hover {
-    background-color: var(--color-surface-hover);
-  }
-
-  /* Update minimized nav-item styles */
-  .minimized .nav-item {
-    position: relative; /* Ensure submenu positioning works */
-  }
-
-  /* Ensure submenu is positioned correctly */
-  .minimized .submenu {
-    left: calc(100% - -8px);
-    top: 0;
-  }
-
-  .logo-minimal-wrapper {
-    margin-top: var(--spacing-4);
-    display: flex;
-    justify-content: center;
-  }
-
-  .logo-minimal {
-    height: 34px !important; /* Increased from 24px */
-    width: auto !important;
-  }
-
-  .button-text {
-    opacity: 0;
-    animation: fadeIn 0.3s ease forwards;
-    animation-delay: 0.15s; /* Add delay to wait for sidebar expansion */
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  /* Update minimized state for toggle button */
-  .minimized .toggle-button {
-    position: static;
-    margin: 0 auto;
-  }
-
-  /* Update submenu item animations */
-  .submenu li {
-    opacity: 0;
-    transform: translateY(10px);
-    animation: submenuItemFadeIn 0.3s ease forwards;
-  }
-
-  .submenu li.category-header {
-    opacity: 1;
-    transform: none;
-    animation: none;
-  }
-
-  @keyframes submenuItemFadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Add animation delay for staggered effect */
-  .submenu li:nth-child(1) { animation-delay: 0.05s; }
-  .submenu li:nth-child(2) { animation-delay: 0.1s; }
-  .submenu li:nth-child(3) { animation-delay: 0.15s; }
-  .submenu li:nth-child(4) { animation-delay: 0.2s; }
-  .submenu li:nth-child(5) { animation-delay: 0.25s; }
-  .submenu li:nth-child(6) { animation-delay: 0.3s; }
-  .submenu li:nth-child(7) { animation-delay: 0.35s; }
-  .submenu li:nth-child(8) { animation-delay: 0.4s; }
-  .submenu li:nth-child(9) { animation-delay: 0.45s; }
-  .submenu li:nth-child(10) { animation-delay: 0.5s; }
-
-  .nav-item-wrapper {
-    position: relative;
-    width: 100%;
-    opacity: 0;
-    transform: translateY(10px);
-    animation: fadeIn 0.3s ease forwards;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .nav-item-button {
-    padding: var(--spacing-1);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-3);
-    /* background-color: var(--color-surface); */
-    width: 100%;
-  }
-
-  .nav-item-button:hover {
-    /* background-color: var(--color-surface-hover); */
-  }
-
-  .text-truncate {
-    max-width: 120px; /* Reduced from 160px to roughly fit 16 characters */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: inline-block;
-  }
-
-  .item-name {
-    flex: 1;
-    min-width: 0; /* This ensures text truncation works in flex containers */
-  }
-
-  /* Add these new styles */
-  .loading {
-    color: var(--color-text-secondary);
-    padding: var(--spacing-3);
-    text-align: center;
-  }
-
-  .item-icon img {
-    width: 18px;
-    height: 18px;
-    display: block;
-    color: var(--color-text-secondary);
-    transition: color 0.2s ease;
-  }
-
-  /* Color for active/hover state */
-/*   li:hover .item-icon img,
-  li.active .item-icon img,
-  .nav-item:hover .section-icon img,
-  .nav-item-button:hover .section-icon img,
-  .has-active-submenu .section-icon img {
-    color: var(--color-text-primary);
-  } */
-
-  .section-icon img {
-    width: 18px;
-    height: 18px;
-    display: block;
-    color: var(--color-text-secondary);
-    transition: color 0.2s ease;
-  }
-
-/*   .nav-item:hover .section-icon img,
-  .nav-item-button:hover .section-icon img,
-  .has-active-submenu .section-icon img {
-    color: var(--color-text-primary);
-  } */
-
-  /* Update the icon styles to handle stroke instead of fill */
-  .item-icon svg {
-    color: var(--color-text-secondary);
-    transition: color 0.2s ease;
-  }
-
-/*   li:hover .item-icon svg,
-  li.active .item-icon svg {
-    color: var(--color-text-primary);
-  } */
-
-  .section-icon svg {
-    color: var(--color-text-secondary);
-    transition: color 0.2s ease;
-  }
-
-/*   .nav-item:hover .section-icon svg,
-  .nav-item-button:hover .section-icon svg,
-  .has-active-submenu .section-icon svg {
-    color: var(--color-text-primary);
-  } */
-
-  /* Base styles for all SVGs */
-  .item-icon svg,
-  .section-icon svg {
-    width: 18px;
-    height: 18px;
-    color: var(--color-text-secondary);
-    transition: color 0.2s ease;
-  }
-
-  /* Hover and active states */
-/*   li:hover .item-icon svg,
-  li.active .item-icon svg,
-  .nav-item:hover .section-icon svg,
-  .nav-item-button:hover .section-icon svg,
-  .has-active-submenu .section-icon svg {
-    color: var(--color-text-primary);
-  } */
-
-  /* Add this to prevent text selection in the navigation */
+  /* User selection disable */
   .nav-item,
   .nav-item-content,
   .item-name,
@@ -1387,159 +941,17 @@
   .submenu li,
   .count {
     user-select: none;
-    -webkit-user-select: none; /* Safari */
-    -moz-user-select: none; /* Firefox */
-    -ms-user-select: none; /* IE10+/Edge */
   }
 
-  /* Keep text selection enabled for loading state */
-  .loading {
-    user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
-  }
-
-  .section-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    color: var(--color-text-secondary);
-  }
-
-  .section-icon :global(svg) {
-    width: 18px;
-    height: 18px;
-    color: inherit;
-  }
-
-  /* Make icons visible on hover and active states */
-  .nav-item:hover .section-icon,
-  .nav-item.has-active-submenu .section-icon {
-    color: var(--color-text-primary);
-  }
-
-  /* Make sure icons are visible in minimized state */
-  .nav-item-button .section-icon {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  /* Update icon styles to handle both fill and stroke */
-  .section-icon :global(svg path),
-  .section-icon :global(svg circle) {
-    fill: currentColor;
-    stroke: currentColor;
-  }
-
-  .nav-item {
-    position: relative;
-    width: 100%;
-    opacity: 0;
-    transform: translateY(10px);
-    animation: fadeIn 0.3s ease forwards;
-  }
-
-  .nav-item-content {
-    padding: var(--spacing-2);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-3);
-    background-color: var(--color-surface);
-  }
-
-  .nav-item-content:hover {
-    background-color: var(--color-surface-hover);
-  }
-
-  /* Make sure icons have the same style in both states */
-  .section-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    color: var(--color-text-secondary);
-  }
-
-  /* Apply the same color rules for both states */
-  .nav-item[data-selected="true"] .section-icon {
-    color: var(--color-text-primary);
-  }
-
-  .nav-item:hover .section-icon {
-    color: var(--color-text-primary);
-  }
-
-  /* Add this new style block at the appropriate location in your existing styles */
+  /* Tooltip adjustments for minimized */
   :global(.minimized .nav-item-button .tooltip) {
     margin-left: var(--spacing-4);
     font-size: var(--font-size-base);
   }
 
-  /* Update existing nav-item-button styles */
-  .minimized .nav-item-button {
-    padding: 0; /* Remove padding from button when minimized */
+  /* Ensure submenu positioning in minimized state */
+  .minimized .submenu {
+    left: calc(100% - -8px);
+    top: 0;
   }
-
-  .tooltip-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    padding: var(--spacing-2);
-  }
-
-  .minimized .nav-item-button {
-    padding: 0;
-    height: 42px; /* Add fixed height to match other buttons */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .minimized .section-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    margin: 0; /* Remove any margin that might affect centering */
-  }
-
-  /* Add this to ensure the tooltip trigger area is centered */
-  :global(.minimized .nav-item-button .tooltip-trigger) {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .minimized .nav-item-button {
-    padding: 0;
-    height: 42px;
-    width: 42px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    border-radius: var(--radius-md);
-  }
-
-  .minimized .nav-item-button:hover {
-    /* background-color: var(--color-surface-hover); */
-  }
-
-  :global(.minimized .tooltip-trigger) {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-  }
-
-</style> 
+</style>
