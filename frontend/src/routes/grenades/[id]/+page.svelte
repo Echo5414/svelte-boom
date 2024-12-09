@@ -159,13 +159,10 @@
   .content {
     padding: var(--content-padding-y) var(--content-padding-x);
     background-color: var(--color-background);
-    overflow-y: auto;
     min-width: 0;
-    height: 100vh;
   }
 
   .content-wrapper {
-    max-width: 1200px;
     margin: 0 auto;
     width: 100%;
   }

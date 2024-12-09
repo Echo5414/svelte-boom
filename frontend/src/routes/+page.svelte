@@ -6,6 +6,7 @@
   import { sidebarWidth } from '$lib/stores/sidebar';
   import { fade, slide } from 'svelte/transition';
   import { onMount } from 'svelte';
+  import { searchTerm } from '$lib/stores/search';
   
   let isSearchOpen = false;
   let searchInput;
@@ -43,6 +44,10 @@
     event.stopPropagation();
   }
 
+  function handleSearch(event) {
+    $searchTerm = event.target.value;
+  }
+
   const getHeaderDelay = (index) => 200 + (index * 100);
 </script>
 
@@ -78,6 +83,7 @@
               class="search-input"
               class:search-input-visible={isSearchOpen}
               on:blur={handleBlur}
+              on:input={handleSearch}
             />
           </div>
         </div>
@@ -105,9 +111,7 @@
   .content {
     padding: var(--content-padding-y) var(--content-padding-x);
     background-color: var(--color-background);
-    overflow-y: auto;
     min-width: 0;
-    height: 100vh;
   }
 
   .header {
@@ -116,6 +120,7 @@
     align-items: center;
     margin-bottom: var(--spacing-8);
     padding: 0;
+    width: 100%;
   }
 
   h1 {

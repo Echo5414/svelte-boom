@@ -3,16 +3,19 @@
   import { fade, fly } from 'svelte/transition';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { searchTerm } from '$lib/stores/search';
   
   const STRAPI_URL = 'http://localhost:1337';
 
   let grenades = [];
   let filteredGrenades = [];
+  let searchFilteredGrenades = [];
   let animationKey = 0;
 
   $: {
-    if ($filters) {
+    if ($filters || $searchTerm) {
       animationKey++;
+      applyFilters();
     }
   }
 
@@ -52,33 +55,33 @@
     
     filteredGrenades = grenades.filter(grenade => {
       // Map filter
-      if ($filters.map !== 'All Maps') {
-        console.log('Comparing maps:', {
-          filterMap: $filters.map,
-          grenadeMap: grenade.map,
-          matches: grenade.map === $filters.map
-        });
-        if (grenade.map !== $filters.map) {
-          return false;
-        }
+      if ($filters.map !== 'All Maps' && grenade.map !== $filters.map) {
+        return false;
       }
 
       // Team filter
-      if ($filters.team !== 'Both Teams') {
-        if (grenade.team !== $filters.team) {
-          return false;
-        }
+      if ($filters.team !== 'Both Teams' && grenade.team !== $filters.team) {
+        return false;
       }
 
       // Grenade type filter
-      if ($filters.grenade !== 'All Grenades') {
-        if (grenade.type !== $filters.grenade) {
-          return false;
-        }
+      if ($filters.grenade !== 'All Grenades' && grenade.type !== $filters.grenade) {
+        return false;
       }
 
       return true;
     });
+
+    // Then apply the search filter
+    if ($searchTerm) {
+      const searchLower = $searchTerm.toLowerCase();
+      searchFilteredGrenades = filteredGrenades.filter(grenade => {
+        const fullTitle = `${grenade.map}: ${grenade.title}`.toLowerCase();
+        return fullTitle.includes(searchLower);
+      });
+    } else {
+      searchFilteredGrenades = filteredGrenades;
+    }
 
     console.log('Filtered grenades:', filteredGrenades); // Debug log
   }
@@ -120,7 +123,7 @@
 </script>
 
 <div class="grenade-grid">
-  {#each filteredGrenades as grenade, i (grenade.id + animationKey)}
+  {#each searchFilteredGrenades as grenade, i (grenade.id + animationKey)}
     <div 
       class="grenade-card"
       in:fly={{
@@ -156,7 +159,7 @@
         <span class="type-tag">{grenade.type}</span>
       </div>
       <div class="card-content">
-        <h3>{grenade.title}</h3>
+        <h3>{grenade.map}: {grenade.title}</h3>
         <div class="card-meta">
           <span class="author">{grenade.author}</span>
           <div class="stats">
@@ -183,7 +186,7 @@
 <style>
   .grenade-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
     gap: var(--spacing-4);
     min-height: 200px;
   }
@@ -262,6 +265,10 @@
     margin-bottom: var(--spacing-1);
     color: var(--color-text-primary);
     font-weight: var(--font-weight-medium);
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-1);
+    flex-wrap: wrap;
   }
 
   .card-meta {
@@ -294,11 +301,11 @@
     gap: var(--spacing-1);
   }
 
-  @media (max-width: 640px) {
+/*   @media (max-width: 640px) {
     .grenade-grid {
       grid-template-columns: 1fr;
     }
-  }
+  } */
 
   .thumbnail-video {
     position: absolute;

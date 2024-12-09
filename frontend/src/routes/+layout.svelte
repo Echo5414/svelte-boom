@@ -10,7 +10,11 @@
 <div class="layout">
   <Sidebar />
   <main>
-    <slot />
+    <div class="content">
+      <div class="container">
+        <slot />
+      </div>
+    </div>
   </main>
   <UserSection />
 </div>
@@ -33,15 +37,26 @@
   .layout {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    min-height: 100vh;
+    height: 100vh;
     overflow: hidden;
   }
 
   main {
     min-width: 0;
     overflow-y: auto;
-    padding: 0;
     position: relative;
     z-index: 1;
+    height: 100vh;
+  }
+
+  .content {
+    padding: var(--content-padding-y) var(--content-padding-x);
+    min-height: 100%;
+  }
+
+  .container {
+    max-width: var(--content-max-width);
+    margin: 0 auto;
+    width: 100%;
   }
 </style>
