@@ -157,7 +157,6 @@
 
 <style>
   .content {
-    padding: var(--content-padding-y) var(--content-padding-x);
     background-color: var(--color-background);
     min-width: 0;
   }
