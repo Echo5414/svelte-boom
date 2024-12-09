@@ -1001,7 +1001,7 @@
   .segmented-control {
     display: flex;
     background: var(--color-surface);
-    padding: var(--spacing-1);
+    /* padding: var(--spacing-1); */
     border-radius: var(--radius-md);
     gap: var(--spacing-1);
   }
@@ -1555,7 +1555,7 @@
   .segmented-control {
     display: flex;
     background: var(--color-surface);
-    padding: var(--spacing-1);
+    /* padding: var(--spacing-1); */
     border-radius: var(--radius-md);
     gap: var(--spacing-1);
   }

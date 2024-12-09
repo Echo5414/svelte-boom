@@ -4,6 +4,9 @@
   import { sidebarWidth } from '$lib/stores/sidebar';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { createEventDispatcher } from 'svelte';
+  import { filters } from '$lib/stores/filters';
+  const dispatch = createEventDispatcher();
   
   const STRAPI_URL = 'http://localhost:1337';
   
@@ -129,19 +132,6 @@
     'Decoy Grenade': 0
   };
 
-  // Only keep the reset icon
-  const resetIcon = `<svg id="Ebene_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 20.3 14">
-    <defs>
-      <style>
-        .st0 {
-          fill:currentColor;
-          fill-rule: evenodd;
-        }
-      </style>
-    </defs>
-    <path class="st0" d="M20.3,11V3c0-1.7-1.3-3-3-3H6.5c-.9,0-1.7.4-2.3,1-.8,1-2.4,2.8-3.5,4-1,1.1-1,2.8,0,4,1.1,1.2,2.7,3,3.5,4,.6.7,1.4,1,2.3,1h10.8c1.7,0,3-1.3,3-3ZM9.9,7l-1.3,1.3c-.4.4-.4,1,0,1.4.4.4,1,.4,1.4,0l1.3-1.3,1.3,1.3c.4.4,1,.4,1.4,0,.4-.4.4-1,0-1.4l-1.3-1.3,1.3-1.3c.4-.4.4-1,0-1.4-.4-.4-1-.4-1.4,0l-1.3,1.3-1.3-1.3c-.4-.4-1-.4-1.4,0-.4.4-.4,1,0,1.4l1.3,1.3Z"/>
-  </svg>`;
-
   // Update navigationItems to use collections
   $: navigationItems = [
     {
@@ -162,7 +152,6 @@
     },
     {
       title: 'RESET',
-      icon: resetIcon,
       items: []
     }
   ];
@@ -195,10 +184,9 @@
 
   function toggleSubmenu(title, event) {
     // Prevent click from propagating to document
-    event.stopPropagation();
-    
-    // Close any open tooltips by triggering a click outside event
-    window.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    if (event) {
+      event.stopPropagation();
+    }
     
     // If we're clicking the same submenu that's already open, close it
     if (activeSubmenu === title) {
@@ -217,14 +205,33 @@
 
   // Close submenu when clicking outside
   function handleClickOutside(event) {
-    if (!event.target.closest('.nav-item')) {
-      activeSubmenu = null;
+    // Check if event.target is a DOM element
+    if (event.target instanceof Element) {
+      if (!event.target.closest('.nav-item')) {
+        activeSubmenu = null;
+      }
     }
   }
 
   function selectItem(category, itemName) {
     activeSelections[category] = itemName;
     activeSubmenu = null;
+    
+    // Update the filters store
+    filters.update(current => {
+      switch(category) {
+        case 'MAPS':
+          return { ...current, map: itemName };
+        case 'TEAMS':
+          return { ...current, team: itemName };
+        case 'GRENADES':
+          return { ...current, grenade: itemName };
+        case 'COLLECTIONS':
+          return { ...current, collection: itemName };
+        default:
+          return current;
+      }
+    });
   }
 
   function toggleSidebar() {
@@ -245,8 +252,24 @@
       'COLLECTIONS': 'No Collection',
       'RESET': 'Reset Filters'
     };
+    filters.set({
+      map: 'All Maps',
+      team: 'Both Teams',
+      grenade: 'All Grenades',
+      collection: 'No Collection'
+    });
     activeSubmenu = null;
   }
+
+  // Make sure filters store is initialized with default values
+  onMount(() => {
+    filters.set({
+      map: 'All Maps',
+      team: 'Both Teams',
+      grenade: 'All Grenades',
+      collection: 'No Collection'
+    });
+  });
 </script>
 
 <svelte:window on:click={handleClickOutside}/>
@@ -284,27 +307,102 @@
 
   <nav class="navigation">
     {#each navigationItems as section, i}
-      {#if isMinimized}
-        <div 
-          class="nav-item-wrapper"
-          style="animation-delay: {getAnimationDelay(i)}"
-        >
-          <Tooltip text={section.title === 'RESET' ? "Reset All Filters" : section.title.charAt(0) + section.title.slice(1).toLowerCase()} position="right">
-            <div 
-              class="nav-item-button"
-              on:click={(e) => {
-                if (section.title === 'RESET') {
-                  resetFilters();
-                } else {
-                  toggleSubmenu(section.title, e);
-                }
-              }}
-            >
+      <div 
+        class="nav-item"
+        style="animation-delay: {getAnimationDelay(i)}"
+        on:click={(e) => {
+          if (section.title === 'RESET') {
+            resetFilters();
+          } else {
+            toggleSubmenu(section.title, e);
+          }
+        }}
+        class:has-active-submenu={activeSubmenu === section.title}
+        data-selected={
+          section.title === 'MAPS' ? activeSelections['MAPS'] !== 'All Maps' :
+          section.title === 'TEAMS' ? activeSelections['TEAMS'] !== 'Both Teams' :
+          section.title === 'GRENADES' ? activeSelections['GRENADES'] !== 'All Grenades' :
+          section.title === 'COLLECTIONS' ? activeSelections['COLLECTIONS'] !== 'No Collection' :
+          false
+        }
+      >
+        {#if isMinimized}
+          <Tooltip text={section.title === 'RESET' ? 'Reset Filters' : section.title.charAt(0) + section.title.slice(1).toLowerCase()} position="right">
+            <div class="nav-item-button">
               <span class="section-icon">
-                {#if section.title === 'MAPS' && activeSelections[section.title]}
+                {#if section.title === 'MAPS'}
+                  {#if activeSelections[section.title] === 'All Maps'}
+                    {@html mapsByCategory[0]?.maps[0]?.icon || ''}
+                  {:else}
+                    {#each mapsByCategory as category}
+                      {#each category.maps as map}
+                        {#if map.name === activeSelections[section.title] && map.icon}
+                          {@html map.icon}
+                        {/if}
+                      {/each}
+                    {/each}
+                  {/if}
+                {:else if section.title === 'RESET'}
+                  <svg id="icon_reset" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 20.3 14">
+                    <path fill="currentColor" fill-rule="evenodd" d="M20.3,11V3c0-1.7-1.3-3-3-3H6.5c-.9,0-1.7.4-2.3,1-.8,1-2.4,2.8-3.5,4-1,1.1-1,2.8,0,4,1.1,1.2,2.7,3,3.5,4,.6.7,1.4,1,2.3,1h10.8c1.7,0,3-1.3,3-3ZM9.9,7l-1.3,1.3c-.4.4-.4,1,0,1.4.4.4,1,.4,1.4,0l1.3-1.3,1.3,1.3c.4.4,1,.4,1.4,0,.4-.4.4-1,0-1.4l-1.3-1.3,1.3-1.3c.4-.4.4-1,0-1.4-.4-.4-1-.4-1.4,0l-1.3,1.3-1.3-1.3c-.4-.4-1-.4-1.4,0-.4.4-.4,1,0,1.4l1.3,1.3Z"/>
+                  </svg>
+                {:else}
+                  {@html section.items.find(item => item.name === activeSelections[section.title])?.icon || ''}
+                {/if}
+              </span>
+            </div>
+          </Tooltip>
+        {:else}
+          <div class="nav-item-button">
+            <span class="section-icon">
+              {#if section.title === 'MAPS'}
+                {#if activeSelections[section.title] === 'All Maps'}
+                  {@html mapsByCategory[0]?.maps[0]?.icon || ''}
+                {:else}
                   {#each mapsByCategory as category}
                     {#each category.maps as map}
-                      {#if map.name === activeSelections[section.title]}
+                      {#if map.name === activeSelections[section.title] && map.icon}
+                        {@html map.icon}
+                      {/if}
+                    {/each}
+                  {/each}
+                {/if}
+              {:else if section.title === 'RESET'}
+                <svg id="icon_reset" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 20.3 14">
+                  <path fill="currentColor" fill-rule="evenodd" d="M20.3,11V3c0-1.7-1.3-3-3-3H6.5c-.9,0-1.7.4-2.3,1-.8,1-2.4,2.8-3.5,4-1,1.1-1,2.8,0,4,1.1,1.2,2.7,3,3.5,4,.6.7,1.4,1,2.3,1h10.8c1.7,0,3-1.3,3-3ZM9.9,7l-1.3,1.3c-.4.4-.4,1,0,1.4.4.4,1,.4,1.4,0l1.3-1.3,1.3,1.3c.4.4,1,.4,1.4,0,.4-.4.4-1,0-1.4l-1.3-1.3,1.3-1.3c.4-.4.4-1,0-1.4-.4-.4-1-.4-1.4,0l-1.3,1.3-1.3-1.3c-.4-.4-1-.4-1.4,0-.4.4-.4,1,0,1.4l1.3,1.3Z"/>
+                </svg>
+              {:else}
+                {@html section.items.find(item => item.name === activeSelections[section.title])?.icon || ''}
+              {/if}
+            </span>
+            <span class="active-selection text-truncate">
+              {activeSelections[section.title]}
+            </span>
+            {#if section.title === 'GRENADES' && section.items.find(item => item.name === activeSelections[section.title])?.count}
+              <span class="count">
+                {section.items.find(item => item.name === activeSelections[section.title]).count}
+              </span>
+            {/if}
+          </div>
+        {/if}
+
+        {#if activeSubmenu === section.title}
+          <div 
+            class="submenu"
+            on:click={(e) => e.stopPropagation()}
+          >
+            {#if section.title === 'MAPS'}
+              <ul>
+                {#if isLoading}
+                  <li class="loading">Loading maps...</li>
+                {:else}
+                  {#each mapsByCategory as category}
+                    <li class="category-header">{category.category}</li>
+                    {#each category.maps as map}
+                      <li 
+                        class:active={activeSelections[section.title] === map.name}
+                        on:click={() => selectItem(section.title, map.name)}
+                      >
                         {#if map.icon}
                           <span class="item-icon">
                             {@html map.icon}
@@ -312,231 +410,105 @@
                         {:else}
                           <span class="item-icon"></span>
                         {/if}
-                      {/if}
+                        {map.name}
+                      </li>
                     {/each}
                   {/each}
-                {:else}
-                  {@html section.icon}
                 {/if}
-              </span>
-            </div>
-          </Tooltip>
-
-          {#if activeSubmenu === section.title}
-            <div 
-              class="submenu"
-              on:click={(e) => e.stopPropagation()}
-            >
-              {#if section.title === 'MAPS'}
-                <ul>
-                  {#if isLoading}
-                    <li class="loading">Loading maps...</li>
-                  {:else}
-                    {#each mapsByCategory as category}
-                      <li class="category-header">{category.category}</li>
-                      {#each category.maps as map}
-                        <li 
-                          class:active={activeSelections[section.title] === map.name}
-                          on:click={() => selectItem(section.title, map.name)}
-                        >
-                          {#if map.icon}
-                            <span class="item-icon">
-                              {@html map.icon}
-                            </span>
-                          {:else}
-                            <span class="item-icon"></span>
-                          {/if}
-                          {map.name}
-                        </li>
-                      {/each}
-                    {/each}
+              </ul>
+            {:else}
+              <ul>
+                <li class="category-header">
+                  {#if section.title === 'GRENADES'}
+                    Grenades
+                  {:else if section.title === 'TEAMS'}
+                    Teams
+                  {:else if section.title === 'COLLECTIONS'}
+                    Collections
                   {/if}
-                </ul>
-              {:else}
-                <ul>
-                  <li class="category-header">
-                    {#if section.title === 'GRENADES'}
-                      Grenades
-                    {:else if section.title === 'TEAMS'}
-                      Teams
-                    {:else if section.title === 'COLLECTIONS'}
-                      Collections
+                </li>
+                {#each section.items as item}
+                  <li 
+                    class:active={activeSelections[section.title] === item.name}
+                    on:click={() => selectItem(section.title, item.name)}
+                  >
+                    <span class="item-icon">
+                      {#if item.icon}
+                        {@html item.icon}
+                      {/if}
+                    </span>
+                    <span class="item-name text-truncate">{item.name}</span>
+                    {#if item.count !== undefined}
+                      <span class="count">{item.count}</span>
                     {/if}
                   </li>
-                  {#each section.items as item}
-                    <li 
-                      class:active={activeSelections[section.title] === item.name}
-                      on:click={() => selectItem(section.title, item.name)}
-                    >
-                      <span class="item-icon">
-                        {#if item.icon}
-                          {@html item.icon}
-                        {/if}
-                      </span>
-                      <span class="item-name text-truncate">{item.name}</span>
-                      {#if item.count !== undefined}
-                        <span class="count">{item.count}</span>
-                      {/if}
-                    </li>
-                  {/each}
-                </ul>
-              {/if}
-            </div>
-          {/if}
-        </div>
-      {:else}
-        <div 
-          class="nav-item"
-          style="animation-delay: {getAnimationDelay(i)}"
-          on:click={(e) => {
-            if (section.title === 'RESET') {
-              resetFilters();
-            } else {
-              toggleSubmenu(section.title, e);
-            }
-          }}
-          class:has-active-submenu={activeSubmenu === section.title}
-        >
-          <div class="nav-item-content">
-            <span class="section-icon">
-              {#if section.title === 'MAPS' && activeSelections[section.title]}
-                {#each mapsByCategory as category}
-                  {#each category.maps as map}
-                    {#if map.name === activeSelections[section.title]}
-                      {#if map.icon}
-                        <span class="item-icon">
-                          {@html map.icon}
-                        </span>
-                      {/if}
-                    {/if}
-                  {/each}
                 {/each}
-              {:else}
-                {@html section.items.find(item => item.name === activeSelections[section.title])?.icon || section.icon}
-              {/if}
-            </span>
-            <span class="active-selection text-truncate">{activeSelections[section.title]}</span>
-            {#if section.title === 'GRENADES' && section.items.find(item => item.name === activeSelections[section.title])?.count}
-              <span class="count">
-                {section.items.find(item => item.name === activeSelections[section.title]).count}
-              </span>
+              </ul>
             {/if}
           </div>
-          
-          {#if activeSubmenu === section.title}
-            <div 
-              class="submenu"
-              on:click={(e) => e.stopPropagation()}
-            >
-              {#if section.title === 'MAPS'}
-                <ul>
-                  {#if isLoading}
-                    <li class="loading">Loading maps...</li>
-                  {:else}
-                    {#each mapsByCategory as category}
-                      <li class="category-header">{category.category}</li>
-                      {#each category.maps as map}
-                        <li 
-                          class:active={activeSelections[section.title] === map.name}
-                          on:click={() => selectItem(section.title, map.name)}
-                        >
-                          {#if map.icon}
-                            <span class="item-icon">
-                              {@html map.icon}
-                            </span>
-                          {:else}
-                            <span class="item-icon"></span>
-                          {/if}
-                          {map.name}
-                        </li>
-                      {/each}
-                    {/each}
-                  {/if}
-                </ul>
-              {:else}
-                <ul>
-                  <li class="category-header">
-                    {#if section.title === 'GRENADES'}
-                      Grenades
-                    {:else if section.title === 'TEAMS'}
-                      Teams
-                    {:else if section.title === 'COLLECTIONS'}
-                      Collections
-                    {/if}
-                  </li>
-                  {#each section.items as item}
-                    <li 
-                      class:active={activeSelections[section.title] === item.name}
-                      on:click={() => selectItem(section.title, item.name)}
-                    >
-                      <span class="item-icon">
-                        {#if item.icon}
-                          {@html item.icon}
-                        {/if}
-                      </span>
-                      <span class="item-name text-truncate">{item.name}</span>
-                      {#if item.count !== undefined}
-                        <span class="count">{item.count}</span>
-                      {/if}
-                    </li>
-                  {/each}
-                </ul>
-              {/if}
-            </div>
-          {/if}
-        </div>
-      {/if}
+        {/if}
+      </div>
     {/each}
   </nav>
 
   <div class="submit-button-container">
-    {#if isMinimized}
-      <Tooltip text="Submit Grenade" position="right">
-        <button class="submit-button" on:click={() => showSubmitModal = true}>
-          <svg 
-            width="18" 
-            height="18" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            stroke-width="3"
-            stroke-linecap="round" 
-            stroke-linejoin="round"
-            class="plus-icon"
-          >
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-        </button>
-      </Tooltip>
-    {:else}
-      <button class="submit-button" on:click={() => showSubmitModal = true}>
-        <span class="button-text">Submit Grenade</span>
-      </button>
-    {/if}
+    <button 
+      class="submit-button" 
+      class:minimized={isMinimized}
+      on:click={(e) => {
+        e.stopPropagation();  // Stop event from bubbling up
+        showSubmitModal = true;
+      }}
+    >
+      {#if !isMinimized}
+        Submit Grenade
+      {:else}
+        <span>+</span>
+      {/if}
+    </button>
   </div>
+
+  {#if showSubmitModal}
+    <SubmitGrenadeModal 
+      show={showSubmitModal}
+      on:close={() => showSubmitModal = false}
+    />
+  {/if}
 </aside>
 
-<SubmitGrenadeModal 
-  show={showSubmitModal} 
-  on:close={() => showSubmitModal = false}
-/>
-
 <style>
-  /* Base icon styles - keep them consistent without hover/active changes */
-  .item-icon,
+  /* Base icon styles */
   .section-icon {
-    width: 18px;
-    height: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  /* SVG specific styles - ensure consistent appearance */
-  .item-icon svg,
-  .section-icon svg {
     width: 18px;
     height: 18px;
+    color: var(--color-text-secondary);
+  }
+
+  .section-icon :global(svg) {
+    width: 18px;
+    height: 18px;
+    color: inherit;
+  }
+
+  /* Force all SVG elements to inherit color */
+  .section-icon :global(svg *),
+  .item-icon :global(svg *) {
+    fill: currentColor !important;
+    stroke: none !important;
+    color: inherit !important;
+  }
+
+  /* Brighten icon only when a non-default selection is active */
+  .nav-item[data-selected="true"] .section-icon {
+    color: var(--color-text-primary);
+  }
+
+  /* Keep hover effect for all items */
+  .nav-item:hover .section-icon {
+    color: var(--color-text-primary);
   }
 
   .sidebar {
@@ -666,7 +638,7 @@
   }
 
   .minimized .nav-item {
-    padding: var(--spacing-2);
+    /* padding: var(--spacing-2); */
     justify-content: center;
   }
 
@@ -910,7 +882,7 @@
 
   .nav-item {
     position: relative;
-    padding: var(--spacing-2) var(--spacing-3);
+    /* padding: var(--spacing-2) var(--spacing-3); */
     cursor: pointer;
     border-radius: var(--radius-md);
     width: 100%;
@@ -969,7 +941,7 @@
 
   .nav-item {
     position: relative;
-    padding: var(--spacing-2) var(--spacing-3);
+    /* padding: var(--spacing-2) var(--spacing-3); */
     cursor: pointer;
     border-radius: var(--radius-md);
     width: 100%;
@@ -1097,13 +1069,13 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: var(--spacing-3);
+    gap: var(--spacing-2);
     padding: var(--spacing-4) var(--spacing-2);
   }
 
   .submit-button-container {
     margin-top: auto;
-    padding: var(--spacing-4);
+    padding: var(--spacing-2);
     width: 100%;
     display: flex;
     justify-content: center;
@@ -1175,7 +1147,7 @@
 
   /* Adjust minimized nav-item styles */
   .minimized .nav-item {
-    padding: var(--spacing-2);
+    padding: 0;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1302,17 +1274,18 @@
   }
 
   .nav-item-button {
-    padding: var(--spacing-2);
+    padding: var(--spacing-1);
     border-radius: var(--radius-md);
     cursor: pointer;
     display: flex;
-    justify-content: center;
     align-items: center;
-    background-color: var(--color-surface);
+    gap: var(--spacing-3);
+    /* background-color: var(--color-surface); */
+    width: 100%;
   }
 
   .nav-item-button:hover {
-    background-color: var(--color-surface-hover);
+    /* background-color: var(--color-surface-hover); */
   }
 
   .text-truncate {
@@ -1425,6 +1398,148 @@
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
+  }
+
+  .section-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    color: var(--color-text-secondary);
+  }
+
+  .section-icon :global(svg) {
+    width: 18px;
+    height: 18px;
+    color: inherit;
+  }
+
+  /* Make icons visible on hover and active states */
+  .nav-item:hover .section-icon,
+  .nav-item.has-active-submenu .section-icon {
+    color: var(--color-text-primary);
+  }
+
+  /* Make sure icons are visible in minimized state */
+  .nav-item-button .section-icon {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Update icon styles to handle both fill and stroke */
+  .section-icon :global(svg path),
+  .section-icon :global(svg circle) {
+    fill: currentColor;
+    stroke: currentColor;
+  }
+
+  .nav-item {
+    position: relative;
+    width: 100%;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeIn 0.3s ease forwards;
+  }
+
+  .nav-item-content {
+    padding: var(--spacing-2);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    background-color: var(--color-surface);
+  }
+
+  .nav-item-content:hover {
+    background-color: var(--color-surface-hover);
+  }
+
+  /* Make sure icons have the same style in both states */
+  .section-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    color: var(--color-text-secondary);
+  }
+
+  /* Apply the same color rules for both states */
+  .nav-item[data-selected="true"] .section-icon {
+    color: var(--color-text-primary);
+  }
+
+  .nav-item:hover .section-icon {
+    color: var(--color-text-primary);
+  }
+
+  /* Add this new style block at the appropriate location in your existing styles */
+  :global(.minimized .nav-item-button .tooltip) {
+    margin-left: var(--spacing-4);
+    font-size: var(--font-size-base);
+  }
+
+  /* Update existing nav-item-button styles */
+  .minimized .nav-item-button {
+    padding: 0; /* Remove padding from button when minimized */
+  }
+
+  .tooltip-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: var(--spacing-2);
+  }
+
+  .minimized .nav-item-button {
+    padding: 0;
+    height: 42px; /* Add fixed height to match other buttons */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .minimized .section-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin: 0; /* Remove any margin that might affect centering */
+  }
+
+  /* Add this to ensure the tooltip trigger area is centered */
+  :global(.minimized .nav-item-button .tooltip-trigger) {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .minimized .nav-item-button {
+    padding: 0;
+    height: 42px;
+    width: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    border-radius: var(--radius-md);
+  }
+
+  .minimized .nav-item-button:hover {
+    /* background-color: var(--color-surface-hover); */
+  }
+
+  :global(.minimized .tooltip-trigger) {
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
 
 </style> 

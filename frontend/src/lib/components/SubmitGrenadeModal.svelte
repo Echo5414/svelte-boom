@@ -7,6 +7,32 @@
   export let show = false;
 
   let isPublic = true;
+  let isLoading = false;
+
+  // Initialize empty arrays for data
+  let maps = [];
+  let teams = [];
+  let types = [];
+  let movements = [];
+  let techniques = [];
+  let precisions = [];
+
+  // Only fetch data when modal is shown
+  $: if (show && !maps.length) {
+    console.log('Fetching form data...');
+    Promise.all([
+      fetchMaps(),
+      fetchTeams(),
+      fetchTypes(),
+      fetchMovements(),
+      fetchTechniques(),
+      fetchPrecisions()
+    ]).then(() => {
+      console.log('Form data loaded successfully');
+    }).catch(error => {
+      console.error('Error loading form data:', error);
+    });
+  }
 
   type Team = 'CT' | 'T';
   type GrenadeType = 'DECOY' | 'FLASH' | 'HE' | 'MOLOTOV' | 'SMOKE';
@@ -97,13 +123,6 @@
     name: string;
     value: string;
   }
-
-  let maps: Array<{ value: string, label: string }> = [];
-  let teams: Array<{ value: string, label: string }> = [];
-  let types: Array<{ value: string, label: string }> = [];
-  let movements: Array<{ value: string, label: string }> = [];
-  let techniques: Array<{ value: string, label: string }> = [];
-  let precisions: Array<{ value: string, label: string }> = [];
 
   async function fetchMaps() {
     try {
@@ -212,15 +231,6 @@
       console.error('Error fetching precisions:', error);
     }
   }
-
-  onMount(async () => {
-    await fetchMaps();
-    await fetchTeams();
-    await fetchTypes();
-    await fetchMovements();
-    await fetchTechniques();
-    await fetchPrecisions();
-  });
 
   // Interface für die API-Optionen
   interface ApiOptions {
@@ -427,12 +437,12 @@
   }
 
   // Close dropdowns when clicking outside
-  function handleClickOutside(event: MouseEvent) {
-    const target = event.target as HTMLElement;
-    if (!target.closest('.custom-select')) {
-      Object.keys(dropdownStates).forEach(key => {
-        dropdownStates[key] = false;
-      });
+  function handleClickOutside(event) {
+    // Check if event.target is a DOM element
+    if (event.target instanceof Element) {
+      if (!event.target.closest('.modal-content')) {
+        show = false;
+      }
     }
   }
 
@@ -448,13 +458,13 @@
 {#if show}
   <div 
     class="modal-backdrop" 
-    on:click={closeModal}
-    transition:fade={{ duration: 200 }}
+    transition:fade 
+    on:click|self={() => dispatch('close')}
   >
     <div 
       class="modal" 
+      transition:fly={{ y: 20 }}
       on:click|stopPropagation
-      transition:fly={{ y: -20, duration: 200 }}
     >
       <div class="modal-header">
         <div class="header-content">
