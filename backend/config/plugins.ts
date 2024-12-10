@@ -1,9 +1,9 @@
-module.exports = {
+export default ({ env }) => ({
   upload: {
     config: {
       providerOptions: {
-        allowedFormats: ['jpeg', 'png', 'gif', 'svg', 'tiff', 'ico', 'dvu', 'webp'], // Add 'webp' here
+        allowedFormats: ['jpeg', 'png', 'gif', 'svg', 'tiff', 'ico', 'dvu', 'webp'],
       },
     },
   },
-};
+});

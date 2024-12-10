@@ -1,39 +1,73 @@
 <script>
   import SubmitGrenadeModal from './SubmitGrenadeModal.svelte';
   import Tooltip from './Tooltip.svelte';
+  import SteamLogin from './SteamLogin.svelte';
   import { userSectionWidth } from '$lib/stores/userSection';
   import { user, logout, login } from '$lib/stores/auth';
   import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   
   let showSubmitModal = false;
   let isMinimized = true;
 
   onMount(() => {
-    const storedWidth = localStorage.getItem('userSectionWidth');
-    isMinimized = storedWidth === '72px';
+    if (browser) {
+      console.log('UserSection mounted');
+      console.log('LocalStorage:', {
+        jwt: localStorage.getItem('jwt'),
+        user: localStorage.getItem('user')
+      });
+      console.log('Current user store value:', $user);
+      
+      const storedWidth = localStorage.getItem('userSectionWidth');
+      isMinimized = storedWidth === '72px';
+    }
   });
 
   function toggleUserSection() {
-    isMinimized = !isMinimized;
-    userSectionWidth.set(isMinimized ? '72px' : '340px');
+    if (browser) {
+      isMinimized = !isMinimized;
+      userSectionWidth.set(isMinimized ? '72px' : '340px');
+    }
   }
 
   function handleLogout() {
     logout();
   }
 
-  function handleLogin() {
-    // For demo purposes, we'll use hardcoded data
-    // In reality, this would connect to Steam authentication
-    const demoUser = {
-      name: 'John Doe',
-      steamId: 'STEAM_0:1:2345678'
-    };
-    login(demoUser);
-  }
-
   // Add animation delay helper
   const getAnimationDelay = (index) => `${200 + (index * 50)}ms`;
+
+  // Debug Subscription
+  $: {
+    console.log('UserSection: Store changed');
+    if ($user) {
+      console.log('UserSection: User logged in:', {
+        username: $user.username,
+        steamId: $user.steamId,
+        avatar: $user.avatar
+      });
+    } else {
+      console.log('UserSection: No user data (logged out)');
+      if (browser) {
+        console.log('LocalStorage check:', {
+          jwt: localStorage.getItem('jwt'),
+          user: localStorage.getItem('user')
+        });
+      }
+    }
+  }
+
+  if (browser) {
+    window.addEventListener('message', (event) => {
+      if (event.origin !== 'http://localhost:5173') return;
+      
+      if (event.data.type === 'steam-login-success') {
+        const { user, jwt } = event.data;
+        login(user, jwt);
+      }
+    });
+  }
 </script>
 
 <aside class="user-section" class:minimized={isMinimized}>
@@ -64,11 +98,15 @@
         <!-- Logged in state -->
         {#if !isMinimized}
           <div class="user-avatar" in:fadeScale>
-            <div class="avatar-placeholder">{$user.name.split(' ').map(n => n[0]).join('')}</div>
+            {#if $user.avatar}
+              <img src={$user.avatar} alt={$user.username} class="avatar-image"/>
+            {:else}
+              <div class="avatar-placeholder">{$user.username[0].toUpperCase()}</div>
+            {/if}
           </div>
           <div class="user-info" in:fadeScale={{ delay: 100 }}>
-            <h3>{$user.name}</h3>
-            <span class="steam-id">{$user.steamId}</span>
+            <h3>{$user.username}</h3>
+            <span class="steam-id">Steam ID: {$user.steamId}</span>
           </div>
           <button class="logout-btn" in:fadeScale={{ delay: 200 }} on:click={handleLogout}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -79,13 +117,22 @@
           </button>
         {:else}
           <div class="user-avatar" in:fadeScale>
-            <div class="avatar-placeholder">{$user.name.split(' ').map(n => n[0]).join('')}</div>
+            {#if $user.avatar}
+              <img src={$user.avatar} alt={$user.username} class="avatar-image"/>
+            {:else}
+              <div class="avatar-placeholder">{$user.username[0].toUpperCase()}</div>
+            {/if}
           </div>
         {/if}
       {:else}
         <!-- Logged out state -->
         {#if !isMinimized}
-          <button class="login-button" in:fadeScale on:click={handleLogin}>
+          <button class="login-button" in:fadeScale on:click={() => {
+            const steamLogin = document.querySelector('.steam-login');
+            if (steamLogin instanceof HTMLElement) {
+              steamLogin.click();
+            }
+          }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
               <polyline points="10 17 15 12 10 7"/>
@@ -95,7 +142,13 @@
           </button>
         {:else}
           <Tooltip text="Login with Steam" position="left">
-            <button class="login-icon-button" in:fadeScale on:click={handleLogin}>
+            <button class="login-icon-button" in:fadeScale on:click={() => {
+              isMinimized = false;
+              setTimeout(() => {
+                const steamLogin = document.querySelector('.steam-login');
+                steamLogin?.click();
+              }, 300);
+            }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
                 <polyline points="10 17 15 12 10 7"/>
@@ -113,6 +166,10 @@
   show={showSubmitModal} 
   on:close={() => showSubmitModal = false}
 />
+
+<div style="display: none;">
+  <SteamLogin />
+</div>
 
 <script context="module">
   const fadeScale = (node, { delay = 0 }) => {
@@ -256,11 +313,14 @@
     margin: 0;
     font-size: var(--font-size-base);
     color: var(--color-text-primary);
+    font-weight: var(--font-weight-medium);
   }
 
   .steam-id {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
+    display: block;
+    margin-top: 2px;
   }
 
   .logout-btn {
@@ -325,5 +385,17 @@
 
   .login-icon-button:hover {
     opacity: 0.9;
+  }
+
+  .steam-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .avatar-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
   }
 </style> 
