@@ -105,7 +105,9 @@
             {/if}
           </div>
           <div class="user-info" in:fadeScale={{ delay: 100 }}>
-            <h3>{$user.username}</h3>
+            <h3>
+              <a href="/profile">{$user.username}</a>
+            </h3>
             <span class="steam-id">Steam ID: {$user.steamId}</span>
           </div>
           <button class="logout-btn" in:fadeScale={{ delay: 200 }} on:click={handleLogout}>
@@ -143,11 +145,8 @@
         {:else}
           <Tooltip text="Login with Steam" position="left">
             <button class="login-icon-button" in:fadeScale on:click={() => {
-              isMinimized = false;
-              setTimeout(() => {
-                const steamLogin = document.querySelector('.steam-login');
-                steamLogin?.click();
-              }, 300);
+              const steamLogin = document.querySelector('.steam-login');
+              steamLogin?.click();
             }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>

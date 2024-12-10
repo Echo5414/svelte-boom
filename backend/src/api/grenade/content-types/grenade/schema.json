@@ -95,6 +95,11 @@
       "type": "relation",
       "relation": "oneToOne",
       "target": "api::precision.precision"
+    },
+    "public": {
+      "type": "boolean",
+      "default": true,
+      "required": true
     }
   }
 }

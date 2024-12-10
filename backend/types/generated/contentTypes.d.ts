@@ -468,6 +468,9 @@ export interface ApiGrenadeGrenade extends Struct.CollectionTypeSchema {
       'oneToOne',
       'api::precision.precision'
     >;
+    public: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
     publishedAt: Schema.Attribute.DateTime;
     team: Schema.Attribute.Relation<'oneToOne', 'api::team.team'>;
     technique: Schema.Attribute.Relation<

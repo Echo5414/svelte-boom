@@ -23,6 +23,25 @@
   // Add state for collections
   let collections = [];
 
+  // Add this near the top of the script section
+  let isMinimized = false;
+  
+  onMount(() => {
+    // Get the stored sidebar state
+    const storedState = localStorage.getItem('sidebarMinimized');
+    isMinimized = storedState === 'true';
+    
+    // Set initial width based on stored state
+    sidebarWidth.set(isMinimized ? '72px' : '240px');
+  });
+
+  function toggleSidebar() {
+    isMinimized = !isMinimized;
+    // Store the new state
+    localStorage.setItem('sidebarMinimized', isMinimized);
+    sidebarWidth.set(isMinimized ? '72px' : '240px');
+  }
+
   // Fetch maps data on mount
   onMount(async () => {
     try {
@@ -167,20 +186,11 @@
 
   let activeSubmenu = null;
 
-  // Add this to track sidebar state
-  let isMinimized = false;
-
   // Add this to handle animation delays
   const getAnimationDelay = (index) => `${200 + (index * 50)}ms`;
 
   // Add modal state
   let showSubmitModal = false;
-
-  onMount(() => {
-    // Set initial state based on stored width
-    const storedWidth = localStorage.getItem('sidebarWidth');
-    isMinimized = storedWidth === '72px';
-  });
 
   function toggleSubmenu(title, event) {
     // Prevent click from propagating to document
@@ -232,11 +242,6 @@
           return current;
       }
     });
-  }
-
-  function toggleSidebar() {
-    isMinimized = !isMinimized;
-    sidebarWidth.set(isMinimized ? '72px' : '240px');
   }
 
   // Add this function to handle logo clicks

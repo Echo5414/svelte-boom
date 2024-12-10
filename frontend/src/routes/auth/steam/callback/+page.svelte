@@ -1,29 +1,47 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   
-  let message = 'Processing Steam login...';
-  
   onMount(() => {
-    // If we're still here after 5 seconds, something went wrong
-    const timeout = setTimeout(() => {
-      message = 'Login taking longer than expected. You may close this window.';
-    }, 5000);
-
-    return () => clearTimeout(timeout);
+    const params = new URLSearchParams(window.location.search);
+    
+    fetch(`/api/auth/steam/callback?${params.toString()}`)
+      .then(response => response.json())
+      .then(data => {
+        // Send message to parent window
+        window.opener.postMessage({
+          type: 'STEAM_AUTH_SUCCESS',
+          data: data
+        }, window.location.origin);
+        
+        // Close the popup
+        window.close();
+      })
+      .catch(error => {
+        window.opener.postMessage({
+          type: 'STEAM_AUTH_ERROR',
+          error: error.message
+        }, window.location.origin);
+        window.close();
+      });
   });
 </script>
 
-<div class="steam-callback">
-  <p>{message}</p>
+<div class="callback-container">
+  <div class="loading-text">Processing Steam login...</div>
 </div>
 
 <style>
-  .steam-callback {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  .callback-container {
+    width: 100%;
     height: 100vh;
-    padding: 1rem;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-background);
+  }
+
+  .loading-text {
+    color: var(--color-text-primary);
+    font-size: var(--font-size-lg);
   }
 </style> 

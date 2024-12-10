@@ -373,6 +373,7 @@
           position: formData.position,
           likes: 0,
           views: 0,
+          public: isPublic,
           map: { 
             connect: [{ 
               documentId: maps.find(m => m.value === formData.map)?.documentId 
@@ -394,7 +395,7 @@
       }
 
       // Submit the grenade data with authorization header
-      const response = await fetch(`${STRAPI_URL}/api/grenades?status=${isPublic ? 'published' : 'draft'}`, {
+      const response = await fetch(`${STRAPI_URL}/api/grenades?status=draft`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -496,420 +497,453 @@
       transition:fly={{ y: 20 }}
       on:click|stopPropagation
     >
-      <div class="modal-header">
-        <div class="header-content">
-          <h2>Submit Grenade</h2>
-          <p class="header-description">
-            Fill in the details for your new grenade lineup.
-          </p>
-        </div>
-        <button class="close-btn" on:click={closeModal}>×</button>
-      </div>
-
-      <form class="modal-content" on:submit|preventDefault={() => {}}>
-        <!-- Title (100%) -->
-        <div class="form-group">
-          <label for="title">Title *</label>
-          <div class="input-with-icon">
-            <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 3H7a4 4 0 0 0-4 4v10a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4V7a4 4 0 0 0-4-4Z"/>
-              <path d="M9 9h6"/>
-              <path d="M9 13h6"/>
-              <path d="M9 17h4"/>
-            </svg>
-            <input 
-              type="text" 
-              id="title" 
-              placeholder="Enter grenade title..." 
-              bind:value={formData.title}
-              class="text-input"
-              required
-            />
+      {#if $user}
+        <div class="modal-header">
+          <div class="header-content">
+            <h2>Submit Grenade</h2>
+            <p class="header-description">
+              Fill in the details for your new grenade lineup.
+            </p>
           </div>
+          <button class="close-btn" on:click={closeModal}>×</button>
         </div>
 
-        <!-- Map (50%) | Team (50%) -->
-        <div class="form-grid">
+        <form class="modal-content" on:submit|preventDefault={() => {}}>
+          <!-- Title (100%) -->
           <div class="form-group">
-            <label for="map">Map *</label>
-            <div class="custom-select">
-              <button 
-                type="button"
-                class="select-button"
-                on:click|stopPropagation={() => toggleDropdown('map')}
-              >
-                {formData.map ? maps.find(o => o.value === formData.map)?.label : 'Select Map'}
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              {#if dropdownStates.map}
-                <div class="select-dropdown">
-                  {#each maps as option}
-                    <button 
-                      type="button"
-                      class="option-button"
-                      class:selected={formData.map === option.value}
-                      on:click|stopPropagation={() => selectOption('map', option.value, option.label)}
-                    >
-                      {#if option.thumbnail}
-                        <img 
-                          src={`${STRAPI_URL}${option.thumbnail}`} 
-                          alt={option.label}
-                          class="map-thumbnail"
-                        />
-                      {/if}
-                      {option.label}
-                    </button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="team">Team *</label>
-            <div class="custom-select">
-              <button 
-                type="button"
-                class="select-button"
-                on:click|stopPropagation={() => toggleDropdown('team')}
-              >
-                {formData.team ? teams.find(o => o.value === formData.team)?.label : 'Select Team'}
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              {#if dropdownStates.team}
-                <div class="select-dropdown">
-                  {#each teams as option}
-                    <button 
-                      type="button"
-                      class="option-button"
-                      class:selected={formData.team === option.value}
-                      on:click|stopPropagation={() => selectOption('team', option.value, option.label)}
-                    >
-                      {option.label}
-                    </button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          </div>
-        </div>
-
-        <!-- Grenade Type (50%) | Technique (50%) -->
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="type">Grenade Type *</label>
-            <div class="custom-select">
-              <button 
-                type="button"
-                class="select-button"
-                on:click|stopPropagation={() => toggleDropdown('type')}
-              >
-                {formData.type ? types.find(o => o.value === formData.type)?.label : 'Select Type'}
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              {#if dropdownStates.type}
-                <div class="select-dropdown">
-                  {#each types as option}
-                    <button 
-                      type="button"
-                      class="option-button"
-                      class:selected={formData.type === option.value}
-                      on:click|stopPropagation={() => selectOption('type', option.value, option.label)}
-                    >
-                      {option.label}
-                    </button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="technique">Technique *</label>
-            <div class="custom-select">
-              <button 
-                type="button"
-                class="select-button"
-                on:click|stopPropagation={() => toggleDropdown('technique')}
-              >
-                {formData.technique ? techniques.find(o => o.value === formData.technique)?.label : 'Select Technique'}
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              {#if dropdownStates.technique}
-                <div class="select-dropdown">
-                  {#each techniques as option}
-                    <button 
-                      type="button"
-                      class="option-button"
-                      class:selected={formData.technique === option.value}
-                      on:click|stopPropagation={() => selectOption('technique', option.value, option.label)}
-                    >
-                      {option.label}
-                    </button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          </div>
-        </div>
-
-        <!-- Movement (50%) | Precision (50%) -->
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="movement">Movement *</label>
-            <div class="custom-select">
-              <button 
-                type="button"
-                class="select-button"
-                on:click|stopPropagation={() => toggleDropdown('movement')}
-              >
-                {formData.movement ? movements.find(o => o.value === formData.movement)?.label : 'Select Movement'}
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              {#if dropdownStates.movement}
-                <div class="select-dropdown">
-                  {#each movements as option}
-                    <button 
-                      type="button"
-                      class="option-button"
-                      class:selected={formData.movement === option.value}
-                      on:click|stopPropagation={() => selectOption('movement', option.value, option.label)}
-                    >
-                      {option.label}
-                    </button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="precision">Precision *</label>
-            <div class="custom-select">
-              <button 
-                type="button"
-                class="select-button"
-                on:click|stopPropagation={() => toggleDropdown('precision')}
-              >
-                {formData.precision ? precisions.find(o => o.value === formData.precision)?.label : 'Select Precision'}
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              {#if dropdownStates.precision}
-                <div class="select-dropdown">
-                  {#each precisions as option}
-                    <button 
-                      type="button"
-                      class="option-button"
-                      class:selected={formData.precision === option.value}
-                      on:click|stopPropagation={() => selectOption('precision', option.value, option.label)}
-                    >
-                      {option.label}
-                    </button>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          </div>
-        </div>
-
-        <!-- Position (66%) | Air Time (33%) -->
-        <div class="form-grid position-time">
-          <div class="form-group">
-            <label for="position">Position *</label>
+            <label for="title">Title *</label>
             <div class="input-with-icon">
               <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-                <circle cx="12" cy="10" r="3"/>
+                <path d="M17 3H7a4 4 0 0 0-4 4v10a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4V7a4 4 0 0 0-4-4Z"/>
+                <path d="M9 9h6"/>
+                <path d="M9 13h6"/>
+                <path d="M9 17h4"/>
               </svg>
               <input 
                 type="text" 
-                id="position" 
-                placeholder="setpos x y z; setang x y z" 
-                bind:value={formData.position}
+                id="title" 
+                placeholder="Enter grenade title..." 
+                bind:value={formData.title}
                 class="text-input"
                 required
               />
             </div>
           </div>
-          <div class="form-group">
-            <label for="airTime">Air Time (seconds)</label>
-            <div class="input-with-icon">
-              <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-              <input 
-                type="text" 
-                id="airTime" 
-                placeholder="e.g. 6.6" 
-                bind:value={formData.airTime}
-                class="text-input"
-              />
+
+          <!-- Map (50%) | Team (50%) -->
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="map">Map *</label>
+              <div class="custom-select">
+                <button 
+                  type="button"
+                  class="select-button"
+                  on:click|stopPropagation={() => toggleDropdown('map')}
+                >
+                  {formData.map ? maps.find(o => o.value === formData.map)?.label : 'Select Map'}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                {#if dropdownStates.map}
+                  <div class="select-dropdown">
+                    {#each maps as option}
+                      <button 
+                        type="button"
+                        class="option-button"
+                        class:selected={formData.map === option.value}
+                        on:click|stopPropagation={() => selectOption('map', option.value, option.label)}
+                      >
+                        {#if option.thumbnail}
+                          <img 
+                            src={`${STRAPI_URL}${option.thumbnail}`} 
+                            alt={option.label}
+                            class="map-thumbnail"
+                          />
+                        {/if}
+                        {option.label}
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="team">Team *</label>
+              <div class="custom-select">
+                <button 
+                  type="button"
+                  class="select-button"
+                  on:click|stopPropagation={() => toggleDropdown('team')}
+                >
+                  {formData.team ? teams.find(o => o.value === formData.team)?.label : 'Select Team'}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                {#if dropdownStates.team}
+                  <div class="select-dropdown">
+                    {#each teams as option}
+                      <button 
+                        type="button"
+                        class="option-button"
+                        class:selected={formData.team === option.value}
+                        on:click|stopPropagation={() => selectOption('team', option.value, option.label)}
+                      >
+                        {option.label}
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Rest of the form (uploads, visibility, buttons) stays the same -->
-
-        <div class="form-grid uploads">
-          <div class="form-group">
-            <label for="thumbnail">Thumbnail</label>
-            <input 
-              type="file" 
-              id="thumbnail"
-              accept="image/*"
-              on:change={(e) => handleFileChange(e, 'thumbnail')}
-              style="display: none"
-            />
-            <button 
-              class="upload-button" 
-              class:has-file={fileNames.thumbnail}
-              class:uploading={uploadingFiles.thumbnail}
-              on:click={() => document.getElementById('thumbnail').click()}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-              {#if uploadingFiles.thumbnail}
-                Uploading...
-              {:else}
-                {fileNames.thumbnail || 'Upload'}
-              {/if}
-              {#if fileNames.thumbnail}
+          <!-- Grenade Type (50%) | Technique (50%) -->
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="type">Grenade Type *</label>
+              <div class="custom-select">
                 <button 
-                  class="clear-file"
-                  on:click|stopPropagation={() => clearFile('thumbnail')}
+                  type="button"
+                  class="select-button"
+                  on:click|stopPropagation={() => toggleDropdown('type')}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  {formData.type ? types.find(o => o.value === formData.type)?.label : 'Select Type'}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
                 </button>
-              {/if}
-            </button>
-          </div>
-
-          <div class="form-group">
-            <label for="lineup">Lineup</label>
-            <input 
-              type="file" 
-              id="lineup"
-              accept="image/*"
-              on:change={(e) => handleFileChange(e, 'lineup')}
-              style="display: none"
-            />
-            <button 
-              class="upload-button" 
-              class:has-file={fileNames.lineup}
-              class:uploading={uploadingFiles.lineup}
-              on:click={() => document.getElementById('lineup').click()}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-              {#if uploadingFiles.lineup}
-                Uploading...
-              {:else}
-                {fileNames.lineup || 'Upload'}
-              {/if}
-              {#if fileNames.lineup}
-                <button 
-                  class="clear-file"
-                  on:click|stopPropagation={() => clearFile('lineup')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              {/if}
-            </button>
-          </div>
-
-          <div class="form-group">
-            <label for="video">Video</label>
-            <input 
-              type="file" 
-              id="video"
-              accept="video/*"
-              on:change={(e) => handleFileChange(e, 'video')}
-              style="display: none"
-            />
-            <button 
-              class="upload-button" 
-              class:has-file={fileNames.video}
-              class:uploading={uploadingFiles.video}
-              on:click={() => document.getElementById('video').click()}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-              {#if uploadingFiles.video}
-                Uploading...
-              {:else}
-                {fileNames.video || 'Upload'}
-              {/if}
-              {#if fileNames.video}
-                <button 
-                  class="clear-file"
-                  on:click|stopPropagation={() => clearFile('video')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              {/if}
-            </button>
-          </div>
-        </div>
-
-        <div class="visibility-card">
-          <div class="visibility-content">
-            <div class="visibility-text">
-              <h2>Public</h2>
-              <p class="visibility-description">Make this grenade visible to everyone</p>
+                {#if dropdownStates.type}
+                  <div class="select-dropdown">
+                    {#each types as option}
+                      <button 
+                        type="button"
+                        class="option-button"
+                        class:selected={formData.type === option.value}
+                        on:click|stopPropagation={() => selectOption('type', option.value, option.label)}
+                      >
+                        {option.label}
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
             </div>
-            <label class="toggle-switch">
+            <div class="form-group">
+              <label for="technique">Technique *</label>
+              <div class="custom-select">
+                <button 
+                  type="button"
+                  class="select-button"
+                  on:click|stopPropagation={() => toggleDropdown('technique')}
+                >
+                  {formData.technique ? techniques.find(o => o.value === formData.technique)?.label : 'Select Technique'}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                {#if dropdownStates.technique}
+                  <div class="select-dropdown">
+                    {#each techniques as option}
+                      <button 
+                        type="button"
+                        class="option-button"
+                        class:selected={formData.technique === option.value}
+                        on:click|stopPropagation={() => selectOption('technique', option.value, option.label)}
+                      >
+                        {option.label}
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            </div>
+          </div>
+
+          <!-- Movement (50%) | Precision (50%) -->
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="movement">Movement *</label>
+              <div class="custom-select">
+                <button 
+                  type="button"
+                  class="select-button"
+                  on:click|stopPropagation={() => toggleDropdown('movement')}
+                >
+                  {formData.movement ? movements.find(o => o.value === formData.movement)?.label : 'Select Movement'}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                {#if dropdownStates.movement}
+                  <div class="select-dropdown">
+                    {#each movements as option}
+                      <button 
+                        type="button"
+                        class="option-button"
+                        class:selected={formData.movement === option.value}
+                        on:click|stopPropagation={() => selectOption('movement', option.value, option.label)}
+                      >
+                        {option.label}
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="precision">Precision *</label>
+              <div class="custom-select">
+                <button 
+                  type="button"
+                  class="select-button"
+                  on:click|stopPropagation={() => toggleDropdown('precision')}
+                >
+                  {formData.precision ? precisions.find(o => o.value === formData.precision)?.label : 'Select Precision'}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                {#if dropdownStates.precision}
+                  <div class="select-dropdown">
+                    {#each precisions as option}
+                      <button 
+                        type="button"
+                        class="option-button"
+                        class:selected={formData.precision === option.value}
+                        on:click|stopPropagation={() => selectOption('precision', option.value, option.label)}
+                      >
+                        {option.label}
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            </div>
+          </div>
+
+          <!-- Position (66%) | Air Time (33%) -->
+          <div class="form-grid position-time">
+            <div class="form-group">
+              <label for="position">Position *</label>
+              <div class="input-with-icon">
+                <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                <input 
+                  type="text" 
+                  id="position" 
+                  placeholder="setpos x y z; setang x y z" 
+                  bind:value={formData.position}
+                  class="text-input"
+                  required
+                />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="airTime">Air Time (seconds)</label>
+              <div class="input-with-icon">
+                <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <input 
+                  type="text" 
+                  id="airTime" 
+                  placeholder="e.g. 6.6" 
+                  bind:value={formData.airTime}
+                  class="text-input"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Rest of the form (uploads, visibility, buttons) stays the same -->
+
+          <div class="form-grid uploads">
+            <div class="form-group">
+              <label for="thumbnail">Thumbnail</label>
               <input 
-                type="checkbox" 
-                bind:checked={isPublic}
+                type="file" 
+                id="thumbnail"
+                accept="image/*"
+                on:change={(e) => handleFileChange(e, 'thumbnail')}
+                style="display: none"
               />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
+              <button 
+                class="upload-button" 
+                class:has-file={fileNames.thumbnail}
+                class:uploading={uploadingFiles.thumbnail}
+                on:click={() => document.getElementById('thumbnail').click()}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                {#if uploadingFiles.thumbnail}
+                  Uploading...
+                {:else}
+                  {fileNames.thumbnail || 'Upload'}
+                {/if}
+                {#if fileNames.thumbnail}
+                  <button 
+                    class="clear-file"
+                    on:click|stopPropagation={() => clearFile('thumbnail')}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                {/if}
+              </button>
+            </div>
 
-        <div class="modal-actions">
-          <button type="button" class="cancel-button" on:click={closeModal}>
-            Cancel
-          </button>
-          <button type="button" class="submit-button" disabled={isSubmitting} on:click={handleSubmit}>
-            {isSubmitting ? 'Submitting...' : 'Submit Grenade'}
+            <div class="form-group">
+              <label for="lineup">Lineup</label>
+              <input 
+                type="file" 
+                id="lineup"
+                accept="image/*"
+                on:change={(e) => handleFileChange(e, 'lineup')}
+                style="display: none"
+              />
+              <button 
+                class="upload-button" 
+                class:has-file={fileNames.lineup}
+                class:uploading={uploadingFiles.lineup}
+                on:click={() => document.getElementById('lineup').click()}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                {#if uploadingFiles.lineup}
+                  Uploading...
+                {:else}
+                  {fileNames.lineup || 'Upload'}
+                {/if}
+                {#if fileNames.lineup}
+                  <button 
+                    class="clear-file"
+                    on:click|stopPropagation={() => clearFile('lineup')}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                {/if}
+              </button>
+            </div>
+
+            <div class="form-group">
+              <label for="video">Video</label>
+              <input 
+                type="file" 
+                id="video"
+                accept="video/*"
+                on:change={(e) => handleFileChange(e, 'video')}
+                style="display: none"
+              />
+              <button 
+                class="upload-button" 
+                class:has-file={fileNames.video}
+                class:uploading={uploadingFiles.video}
+                on:click={() => document.getElementById('video').click()}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                {#if uploadingFiles.video}
+                  Uploading...
+                {:else}
+                  {fileNames.video || 'Upload'}
+                {/if}
+                {#if fileNames.video}
+                  <button 
+                    class="clear-file"
+                    on:click|stopPropagation={() => clearFile('video')}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                {/if}
+              </button>
+            </div>
+          </div>
+
+          <div class="visibility-card">
+            <div class="visibility-content">
+              <div class="visibility-text">
+                <h2>Public</h2>
+                <p class="visibility-description">Make this grenade visible to everyone</p>
+              </div>
+              <label class="toggle-switch">
+                <input 
+                  type="checkbox" 
+                  bind:checked={isPublic}
+                />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="cancel-button" on:click={closeModal}>
+              Cancel
+            </button>
+            <button type="button" class="submit-button" disabled={isSubmitting} on:click={handleSubmit}>
+              {isSubmitting ? 'Submitting...' : 'Submit Grenade'}
+            </button>
+          </div>
+
+          {#if error}
+            <div class="error-message">
+              {error}
+            </div>
+          {/if}
+        </form>
+      {:else}
+        <div class="modal-header">
+          <div class="header-content">
+            <h2>Authentication Required</h2>
+            <p class="header-description">
+              You need to be logged in to submit grenades.
+            </p>
+          </div>
+          <button class="close-btn" on:click={closeModal}>×</button>
+        </div>
+        
+        <div class="modal-content login-prompt">
+          <p>Please log in with your Steam account to submit grenades and contribute to the community.</p>
+          <button 
+            class="login-button" 
+            on:click={() => {
+              const steamLogin = document.querySelector('.steam-login');
+              if (steamLogin instanceof HTMLElement) {
+                steamLogin.click();
+              }
+              closeModal();
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+              <polyline points="10 17 15 12 10 7"/>
+              <line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+            Login with Steam
           </button>
         </div>
-
-        {#if error}
-          <div class="error-message">
-            {error}
-          </div>
-        {/if}
-      </form>
+      {/if}
     </div>
   </div>
 {/if}
@@ -1612,5 +1646,41 @@
 
   .upload-button.has-file {
     padding-right: calc(var(--spacing-3) + 24px);
+  }
+
+  .login-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-6);
+    padding: var(--spacing-8) var(--spacing-6);
+    text-align: center;
+  }
+
+  .login-prompt p {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-base);
+    margin: 0;
+    max-width: 400px;
+  }
+
+  .login-button {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-3) var(--spacing-6);
+    background-color: var(--color-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+
+  .login-button:hover {
+    opacity: 0.9;
   }
 </style> 
