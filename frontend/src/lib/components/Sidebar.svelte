@@ -444,20 +444,31 @@
   </nav>
 
   <div class="submit-button-container">
-    <button 
-      class="submit-button" 
-      class:minimized={isMinimized}
-      on:click={(e) => {
-        e.stopPropagation();  // Stop event from bubbling up
-        showSubmitModal = true;
-      }}
-    >
-      {#if !isMinimized}
+    {#if isMinimized}
+      <Tooltip text="Submit Grenade" position="right">
+        <button 
+          class="submit-button" 
+          class:minimized={isMinimized}
+          on:click={(e) => {
+            e.stopPropagation();
+            showSubmitModal = true;
+          }}
+        >
+          <span>+</span>
+        </button>
+      </Tooltip>
+    {:else}
+      <button 
+        class="submit-button" 
+        class:minimized={isMinimized}
+        on:click={(e) => {
+          e.stopPropagation();
+          showSubmitModal = true;
+        }}
+      >
         Submit Grenade
-      {:else}
-        <span>+</span>
-      {/if}
-    </button>
+      </button>
+    {/if}
   </div>
 
   {#if showSubmitModal}

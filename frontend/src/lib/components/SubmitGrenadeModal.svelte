@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { onMount } from 'svelte';
+  import { user } from '$lib/stores/auth';
   const dispatch = createEventDispatcher();
 
   export let show = false;
@@ -258,34 +259,43 @@
   });
 
   async function uploadMedia(file: File, field: string) {
-  const formData = new FormData();
-  formData.append('files', file);
-  
-  try {
-    const response = await fetch(`${STRAPI_URL}/api/upload`, {
-      method: 'POST',
-      body: formData
-    });
+    const formData = new FormData();
+    formData.append('files', file);
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error(`Upload error for ${field}:`, errorData);
-      throw new Error(`Failed to upload ${field}: ${response.status} ${response.statusText}`);
+    // Get JWT from localStorage
+    const jwt = localStorage.getItem('jwt');
+    if (!jwt) {
+      throw new Error('Authentication token not found');
     }
     
-    const data = await response.json();
-    console.log(`Upload success for ${field}:`, data);
-    
-    if (!data || !data[0] || !data[0].id) {
-      throw new Error(`Invalid response format for ${field} upload`);
+    try {
+      const response = await fetch(`${STRAPI_URL}/api/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${jwt}` // Add the authorization header
+        },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error(`Upload error for ${field}:`, errorData);
+        throw new Error(`Failed to upload ${field}: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log(`Upload success for ${field}:`, data);
+      
+      if (!data || !data[0] || !data[0].id) {
+        throw new Error(`Invalid response format for ${field} upload`);
+      }
+      
+      return data[0].id;
+    } catch (error) {
+      console.error(`Error uploading ${field}:`, error);
+      throw error;
     }
-    
-    return data[0].id; // Return the first uploaded file's ID
-  } catch (error) {
-    console.error(`Error uploading ${field}:`, error);
-    throw error;
   }
-}
 
   let isSubmitting = false;
   let error = null;
@@ -319,6 +329,16 @@
         formData.lineup ? uploadMedia(formData.lineup, 'lineup') : null,
         formData.video ? uploadMedia(formData.video, 'video') : null
       ]);
+
+      // Get the current user from the store
+      let currentUser;
+      user.subscribe(value => {
+        currentUser = value;
+      })();
+
+      if (!currentUser) {
+        throw new Error('You must be logged in to submit grenades');
+      }
 
       // Prepare the grenade data
       const grenadeData = {
@@ -360,15 +380,25 @@
           },
           thumbnail: thumbnailId,
           lineup: lineupId,
-          ...(videoId && { video: videoId })
+          ...(videoId && { video: videoId }),
+          user: {
+            connect: [{ id: currentUser.id }]
+          }
         }
       };
 
-      // Submit the grenade data
+      // Get JWT from localStorage
+      const jwt = localStorage.getItem('jwt');
+      if (!jwt) {
+        throw new Error('Authentication token not found');
+      }
+
+      // Submit the grenade data with authorization header
       const response = await fetch(`${STRAPI_URL}/api/grenades?status=${isPublic ? 'published' : 'draft'}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwt}` // Add the authorization header
         },
         body: JSON.stringify(grenadeData)
       });

@@ -287,7 +287,7 @@
     background: var(--color-surface);
     padding: var(--spacing-1) var(--spacing-2);
     border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-base);
   }
 
   .publish-info a {

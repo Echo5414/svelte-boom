@@ -72,6 +72,12 @@
     },
     "avatar": {
       "type": "string"
+    },
+    "grenades": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::grenade.grenade",
+      "mappedBy": "user"
     }
   }
 } 
