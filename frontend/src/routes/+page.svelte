@@ -15,11 +15,42 @@
     easing: cubicOut
   });
   let headerVisible = false;
+  const STRAPI_URL = 'http://localhost:1337';
+  let grenades = [];
+  let isLoading = true;
+
+  async function fetchGrenades() {
+    try {
+      const response = await fetch(`${STRAPI_URL}/api/grenades?status=published&populate=*`);
+      const data = await response.json();
+      
+      grenades = data.data.map(grenade => ({
+        id: grenade.id,
+        title: grenade.title,
+        author: grenade.user ? grenade.user.username : 'Unknown',
+        likes: grenade.likes,
+        views: grenade.views,
+        type: grenade.type.name,
+        map: grenade.map.name,
+        team: grenade.team.name,
+        image: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg',
+        video: grenade.video ? {
+          src: `${STRAPI_URL}${grenade.video.url}`,
+          preview: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg'
+        } : null
+      }));
+    } catch (error) {
+      console.error('Error fetching grenades:', error);
+    } finally {
+      isLoading = false;
+    }
+  }
 
   onMount(() => {
     setTimeout(() => {
       headerVisible = true;
     }, 100);
+    fetchGrenades();
   });
 
   function toggleSearch() {
@@ -104,7 +135,11 @@
     </div>
   </header>
 
-  <GrenadeGrid />
+  {#if isLoading}
+    <div class="loading">Loading grenades...</div>
+  {:else}
+    <GrenadeGrid {grenades} />
+  {/if}
 </main>
 
 <style>
@@ -283,5 +318,11 @@
       opacity: 1;
       transform: translateX(0);
     }
+  }
+
+  .loading {
+    text-align: center;
+    padding: var(--spacing-8);
+    color: var(--color-text-secondary);
   }
 </style>

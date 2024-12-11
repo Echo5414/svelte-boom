@@ -81,7 +81,7 @@
                 day: 'numeric',
                 year: 'numeric'
               })} — 
-              <a href="/user/{grenadeData.author}">{grenadeData.author}</a>
+              <a class="s-XEeEwign4_oP" href="/user/{grenadeData.userId}">{grenadeData.author}</a>
             </span>
           </div>
         {/if}

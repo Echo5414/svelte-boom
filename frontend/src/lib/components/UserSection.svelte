@@ -93,68 +93,79 @@
       </Tooltip>
     </div>
 
-    <div class="user-profile" style="animation-delay: {getAnimationDelay(0)}">
+    <div class="user-section-content">
       {#if $user}
-        <!-- Logged in state -->
         {#if !isMinimized}
-          <div class="user-avatar" in:fadeScale>
-            {#if $user.avatar}
-              <img src={$user.avatar} alt={$user.username} class="avatar-image"/>
-            {:else}
-              <div class="avatar-placeholder">{$user.username[0].toUpperCase()}</div>
-            {/if}
-          </div>
-          <div class="user-info" in:fadeScale={{ delay: 100 }}>
-            <h3>
-              <a href="/profile">{$user.username}</a>
-            </h3>
-            <span class="steam-id">Steam ID: {$user.steamId}</span>
-          </div>
-          <button class="logout-btn" in:fadeScale={{ delay: 200 }} on:click={handleLogout}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-          </button>
+          <a href="/profile" class="user-card" in:fadeScale={{ delay: 100 }}>
+            <div class="user-avatar">
+              {#if $user.avatar}
+                <img src={$user.avatar} alt={$user.username} class="avatar-image"/>
+              {:else}
+                <div class="avatar-placeholder">{$user.username[0].toUpperCase()}</div>
+              {/if}
+            </div>
+            <div class="user-details">
+              <h3>{$user.username}</h3>
+              <span class="steam-id">Steam ID: {$user.steamId}</span>
+            </div>
+            <button class="logout-btn" in:fadeScale={{ delay: 200 }} on:click={handleLogout}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </button>
+          </a>
         {:else}
-          <div class="user-avatar" in:fadeScale>
-            {#if $user.avatar}
-              <img src={$user.avatar} alt={$user.username} class="avatar-image"/>
-            {:else}
-              <div class="avatar-placeholder">{$user.username[0].toUpperCase()}</div>
-            {/if}
-          </div>
+          <a href="/profile" class="user-card minimized-card" in:fadeScale>
+            <div class="user-avatar">
+              {#if $user.avatar}
+                <img src={$user.avatar} alt={$user.username} class="avatar-image"/>
+              {:else}
+                <div class="avatar-placeholder">{$user.username[0].toUpperCase()}</div>
+              {/if}
+            </div>
+          </a>
         {/if}
       {:else}
-        <!-- Logged out state -->
-        {#if !isMinimized}
-          <button class="login-button" in:fadeScale on:click={() => {
+        {#if isMinimized}
+          <a href="#" class="user-card minimized-card" in:fadeScale on:click|preventDefault={() => {
             const steamLogin = document.querySelector('.steam-login');
             if (steamLogin instanceof HTMLElement) {
               steamLogin.click();
             }
           }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-              <polyline points="10 17 15 12 10 7"/>
-              <line x1="15" y1="12" x2="3" y2="12"/>
-            </svg>
-            <span class="button-text" in:fadeScale={{ delay: 150 }}>Login with Steam</span>
-          </button>
+            <div class="user-avatar">
+              <div class="avatar-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                  <polyline points="10 17 15 12 10 7"/>
+                  <line x1="15" y1="12" x2="3" y2="12"/>
+                </svg>
+              </div>
+            </div>
+          </a>
         {:else}
-          <Tooltip text="Login with Steam" position="left">
-            <button class="login-icon-button" in:fadeScale on:click={() => {
-              const steamLogin = document.querySelector('.steam-login');
-              steamLogin?.click();
-            }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                <polyline points="10 17 15 12 10 7"/>
-                <line x1="15" y1="12" x2="3" y2="12"/>
-              </svg>
-            </button>
-          </Tooltip>
+          <a href="#" class="user-card" in:fadeScale on:click|preventDefault={() => {
+            const steamLogin = document.querySelector('.steam-login');
+            if (steamLogin instanceof HTMLElement) {
+              steamLogin.click();
+            }
+          }}>
+            <div class="user-avatar">
+              <div class="avatar-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                  <polyline points="10 17 15 12 10 7"/>
+                  <line x1="15" y1="12" x2="3" y2="12"/>
+                </svg>
+              </div>
+            </div>
+            <div class="user-details">
+              <h3>Login with Steam</h3>
+              <span class="steam-id">Connect your Steam account</span>
+            </div>
+          </a>
         {/if}
       {/if}
     </div>
@@ -174,10 +185,10 @@
   const fadeScale = (node, { delay = 0 }) => {
     return {
       delay,
-      duration: 300,
+      duration: 200,
       css: t => `
         opacity: ${t};
-        transform: scale(${0.8 + (0.2 * t)});
+        transform: scale(${0.95 + (0.05 * t)});
       `
     };
   };
@@ -193,14 +204,23 @@
     display: flex;
     flex-direction: column;
     width: var(--user-section-width);
-    transition: width 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: sticky;
     top: 0;
     z-index: var(--z-sidebar);
+    overflow: visible;
+  }
+
+  .chevron-container {
+    position: relative;
   }
 
   :global(.user-section .tooltip-wrapper) {
     position: relative;
+    z-index: var(--z-tooltip);
+  }
+
+  :global(.user-section .tooltip) {
     z-index: var(--z-tooltip);
   }
 
@@ -215,6 +235,24 @@
     width: 100%;
     padding-right: var(--spacing-2);
     margin-top: var(--spacing-2);
+  }
+
+  .minimized .user-section-header {
+    padding-right: 0;
+  }
+
+  .minimized-card {
+    padding: var(--spacing-3);
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1;
+    padding: 0;
+  }
+
+  .minimized .chevron-container {
+    justify-content: center;
+    padding: 0 var(--spacing-2);
+    margin-bottom: var(--spacing-3);
   }
 
   .chevron-container {
@@ -284,9 +322,7 @@
     justify-content: center;
     color: var(--color-text-primary);
     font-weight: var(--font-weight-medium);
-    opacity: 0;
-    transform: scale(0.8);
-    animation: scaleIn 0.3s ease forwards;
+    flex-shrink: 0;
   }
 
   @keyframes scaleIn {
@@ -327,17 +363,21 @@
     border: none;
     color: var(--color-text-secondary);
     cursor: pointer;
-    padding: var(--spacing-1);
+    padding: var(--spacing-2);
     display: flex;
     align-items: center;
     opacity: 0;
     transform: scale(0.8);
     animation: scaleIn 0.3s ease forwards;
     animation-delay: 0.2s;
+    /* background-color: var(--color-text-tertiary); */
+    border-radius: var(--radius-md);
   }
 
   .logout-btn:hover {
+    color: var(--color-text-primary);
     opacity: 1;
+    
   }
 
   @media (max-width: 1024px) {
@@ -396,5 +436,78 @@
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
+  }
+
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-4);
+    padding: var(--spacing-4);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-hover);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+  }
+
+  .minimized-card {
+    padding: var(--spacing-3);
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1;
+    padding: 0;
+    background-color: transparent;
+  }
+
+  .user-card:hover {
+    background: var(--color-surface-active);
+    transform: translateY(-1px);
+  }
+
+  .user-card:active {
+    transform: translateY(0);
+  }
+
+  .user-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+
+  .user-details {
+    display: flex;
+    flex-direction: column;
+    /* gap: var(--spacing-1); */
+  }
+
+  .user-details h3 {
+    margin: 0;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .login-button.minimized {
+    width: 42px;
+    padding: var(--spacing-2);
+    justify-content: center;
+  }
+
+  .login-button.minimized .button-text {
+    display: none;
+  }
+
+  .avatar-placeholder svg {
+    color: var(--color-text-primary);
+  }
+
+  /* Remove these styles as they're no longer needed */
+  .login-arrow-container,
+  .login-arrow,
+  .user-card:hover .login-arrow {
+    display: none;
   }
 </style> 

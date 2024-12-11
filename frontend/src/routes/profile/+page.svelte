@@ -2,6 +2,7 @@
   import { user } from '$lib/stores/auth';
   import GrenadeGrid from '$lib/components/GrenadeGrid.svelte';
   import { fade } from 'svelte/transition';
+  import { onMount } from 'svelte';
   
   let activeTab: 'published' | 'drafts' = 'published';
   let isLoading = true;
@@ -12,23 +13,55 @@
   async function fetchGrenades() {
     if (!$user) return;
     
-    const query = `filters[user][id][$eq]=${$user.id}&populate=*&status=${activeTab === 'published' ? 'published' : 'draft'}`;
+    isLoading = true;
+    grenades = [];
+    
+    console.log('Fetching grenades for user:', $user.id, 'with status:', activeTab);
+    
+    const query = new URLSearchParams({
+      'filters[user][id]': $user.id.toString(),
+      'filters[public]': activeTab === 'published' ? 'true' : 'false',
+      'populate': '*',
+    }).toString();
     
     try {
       const response = await fetch(`${STRAPI_URL}/api/grenades?${query}`);
       const data = await response.json();
-      grenades = data.data || [];
-      console.log(`Fetched ${activeTab} grenades:`, grenades);
+      console.log('Raw API response:', data);
+
+      grenades = (data.data || []).map(grenade => ({
+        id: grenade.id,
+        title: grenade.title,
+        author: grenade.user ? grenade.user.username : 'Unknown',
+        likes: grenade.likes || 0,
+        views: grenade.views || 0,
+        type: grenade.type?.name || 'Unknown',
+        map: grenade.map?.name || 'Unknown',
+        team: grenade.team?.name || 'Unknown',
+        image: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg',
+        video: grenade.video ? {
+          src: `${STRAPI_URL}${grenade.video.url}`,
+          preview: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg'
+        } : null
+      }));
+      
+      console.log('Processed grenades:', grenades);
     } catch (error) {
       console.error('Error fetching grenades:', error);
+      grenades = [];  // Clear grenades on error
     } finally {
       isLoading = false;
     }
   }
 
-  $: if ($user && activeTab) {
+  function switchTab(newTab: 'published' | 'drafts') {
+    activeTab = newTab;
     fetchGrenades();
   }
+
+  onMount(() => {
+    fetchGrenades();
+  });
 </script>
 
 <div class="profile" in:fade>
@@ -54,14 +87,14 @@
         <button 
           class="segment-btn" 
           class:active={activeTab === 'published'}
-          on:click={() => activeTab = 'published'}
+          on:click={() => switchTab('published')}
         >
           Published
         </button>
         <button 
           class="segment-btn" 
           class:active={activeTab === 'drafts'}
-          on:click={() => activeTab = 'drafts'}
+          on:click={() => switchTab('drafts')}
         >
           Drafts
         </button>
@@ -75,7 +108,9 @@
         <p>No {activeTab} grenades found.</p>
       </div>
     {:else}
-      <GrenadeGrid {grenades} />
+      <div key={activeTab}>
+        <GrenadeGrid {grenades} />
+      </div>
     {/if}
   </div>
 </div>

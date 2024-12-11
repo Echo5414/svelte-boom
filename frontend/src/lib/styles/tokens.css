@@ -3,19 +3,19 @@
   --color-background: #1C1B20;    /* Darkest gray */
   --color-surface: #292930;       /* Dark gray */
   --color-surface-hover: #31333c; /* Slightly lighter dark gray */
-  --color-surface-active: #2f2f38;/* Even lighter dark gray */
+  --color-surface-active: #343740;/* Even lighter dark gray */
   --color-primary: #F74843;       /* Red accent */
   --color-primary-hover: #F85F5B; /* Slightly lighter red */
   --color-text-primary: #E6E6EA;  /* Light gray text */
   --color-text-secondary: #828291;/* Medium gray text */
-  --color-text-tertiary: #3E3E44; /* Darker gray text */
+  --color-text-tertiary: #43434d; /* Darker gray text */
   --color-border: rgba(82, 82, 92, 0.2); /* Based on the medium gray */
   --color-divider: rgba(82, 82, 92, 0.1);
 
   /* Typography */
   --font-family-base: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
   --font-size-xs: 0.5rem;    /* 12px */
-  --font-size-sm: 0.75rem;   /* 14px */
+  --font-size-sm: 0.85rem;   /* 14px */
   --font-size-base: 1rem;     /* 16px */
   --font-size-lg: 1.125rem;   /* 18px */
   --font-size-xl: 1.5rem;    /* 20px */

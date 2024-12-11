@@ -87,6 +87,7 @@
             id: grenadeData.id,
             title: grenadeData.title || 'Untitled',
             author: grenadeData.user?.username || 'Unknown',
+            userId: grenadeData.user?.id,
             likes: grenadeData.likes || 0,
             views: grenadeData.views || 0,
             type: grenadeData.type?.name || 'Unknown',

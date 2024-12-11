@@ -658,7 +658,7 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: var(--spacing-2);
+    gap: var(--spacing-1);
     padding: var(--spacing-4) var(--spacing-2);
   }
 
@@ -684,6 +684,10 @@
 
   .nav-item:hover .section-icon {
     color: var(--color-text-primary);
+  }
+
+  .nav-item:last-child {
+    margin-top: var(--spacing-4);
   }
 
   /* When minimized */
@@ -969,5 +973,18 @@
   .minimized .submenu {
     left: calc(100% - -8px);
     top: 0;
+  }
+
+  /* Add this style for the active-selection text */
+  .active-selection {
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease;
+  }
+
+  /* Update hover and active states to include the text */
+  .nav-item:hover .active-selection,
+  .nav-item.has-active-submenu .active-selection,
+  .nav-item[data-selected="true"] .active-selection {
+    color: var(--color-text-primary);
   }
 </style>

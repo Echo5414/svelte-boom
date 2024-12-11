@@ -7,7 +7,7 @@
   
   const STRAPI_URL = 'http://localhost:1337';
 
-  let grenades = [];
+  export let grenades = [];
   let filteredGrenades = [];
   let searchFilteredGrenades = [];
   let animationKey = 0;
@@ -118,7 +118,7 @@
   }
 
   onMount(() => {
-    fetchGrenades();
+    applyFilters();
   });
 </script>
 
