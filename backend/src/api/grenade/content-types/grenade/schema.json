@@ -20,7 +20,8 @@
       "type": "relation",
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user",
-      "inversedBy": "grenades"
+      "inversedBy": "grenades",
+      "visible": true
     },
     "airtime": {
       "type": "decimal"
@@ -100,6 +101,13 @@
       "type": "boolean",
       "default": true,
       "required": true
+    },
+    "likedBy": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "likedGrenades",
+      "visible": true
     }
   }
 }

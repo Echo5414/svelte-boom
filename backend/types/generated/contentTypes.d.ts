@@ -450,6 +450,10 @@ export interface ApiGrenadeGrenade extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    likedBy: Schema.Attribute.Relation<
+      'manyToMany',
+      'plugin::users-permissions.user'
+    >;
     likes: Schema.Attribute.Integer &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<0>;
@@ -1134,7 +1138,6 @@ export interface PluginUsersPermissionsUser
   };
   options: {
     draftAndPublish: false;
-    timestamps: true;
   };
   attributes: {
     avatar: Schema.Attribute.String;
@@ -1149,7 +1152,13 @@ export interface PluginUsersPermissionsUser
       Schema.Attribute.SetMinMaxLength<{
         minLength: 6;
       }>;
-    grenades: Schema.Attribute.Relation<'oneToMany', 'api::grenade.grenade'>;
+    grenades: Schema.Attribute.Relation<'oneToMany', 'api::grenade.grenade'> &
+      Schema.Attribute.Configurable;
+    likedGrenades: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::grenade.grenade'
+    > &
+      Schema.Attribute.Configurable;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -1168,7 +1177,7 @@ export interface PluginUsersPermissionsUser
       'manyToOne',
       'plugin::users-permissions.role'
     >;
-    steamId: Schema.Attribute.String & Schema.Attribute.Unique;
+    steamId: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

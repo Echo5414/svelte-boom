@@ -18,6 +18,15 @@
   const STRAPI_URL = 'http://localhost:1337';
   let grenades = [];
   let isLoading = true;
+  let showFilterMenu = false;
+  let selectedSort = 'newest'; // default sort
+
+  const sortOptions = [
+    { value: 'newest', label: 'Newest First' },
+    { value: 'oldest', label: 'Oldest First' },
+    { value: 'a-z', label: 'Name (A-Z)' },
+    { value: 'z-a', label: 'Name (Z-A)' }
+  ];
 
   async function fetchGrenades() {
     try {
@@ -33,12 +42,16 @@
         type: grenade.type.name,
         map: grenade.map.name,
         team: grenade.team.name,
+        createdAt: grenade.createdAt,
         image: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg',
         video: grenade.video ? {
           src: `${STRAPI_URL}${grenade.video.url}`,
           preview: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg'
         } : null
       }));
+      
+      // Initial sort by newest
+      grenades.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } catch (error) {
       console.error('Error fetching grenades:', error);
     } finally {
@@ -80,7 +93,37 @@
   }
 
   const getHeaderDelay = (index) => 200 + (index * 100);
+
+  function handleSort(option) {
+    selectedSort = option.value;
+    showFilterMenu = false;
+    
+    // Sort the grenades array based on selection
+    grenades = [...grenades].sort((a, b) => {
+      switch(option.value) {
+        case 'newest':
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        case 'oldest':
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        case 'a-z':
+          return a.title.localeCompare(b.title);
+        case 'z-a':
+          return b.title.localeCompare(a.title);
+        default:
+          return 0;
+      }
+    });
+  }
+
+  // Close menu when clicking outside
+  function handleClickOutside(event) {
+    if (!event.target.closest('.filter-menu-container')) {
+      showFilterMenu = false;
+    }
+  }
 </script>
+
+<svelte:window on:click={handleClickOutside}/>
 
 <main class="content">
   <header class="header">
@@ -120,16 +163,50 @@
         </div>
 
         <div 
-          class="header-action"
+          class="header-action filter-menu-container"
           style="animation-delay: {getHeaderDelay(1)}ms"
         >
-          <Tooltip text="Filters" position="right">
-            <button class="icon-button">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
-              </svg>
-            </button>
-          </Tooltip>
+          <button 
+            class="icon-button"
+            class:active={showFilterMenu}
+            on:click|stopPropagation={() => showFilterMenu = !showFilterMenu}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
+            </svg>
+          </button>
+
+          {#if showFilterMenu}
+            <div 
+              class="filter-menu"
+              transition:fade={{ duration: 100 }}
+              on:click|stopPropagation
+            >
+              <div class="category-header">Sort By</div>
+              {#each sortOptions as option}
+                <button 
+                  class="filter-option" 
+                  class:active={selectedSort === option.value}
+                  on:click={() => handleSort(option)}
+                >
+                  <span class="item-icon">
+                    {#if option.value.includes('newest') || option.value.includes('oldest')}
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20V10"/>
+                        <path d="M18 20V4"/>
+                        <path d="M6 20v-4"/>
+                      </svg>
+                    {:else}
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                      </svg>
+                    {/if}
+                  </span>
+                  {option.label}
+                </button>
+              {/each}
+            </div>
+          {/if}
         </div>
       {/if}
     </div>
@@ -155,6 +232,8 @@
     margin-bottom: var(--spacing-8);
     padding: 0;
     width: 100%;
+    position: relative;
+    z-index: var(--z-header);
   }
 
   h1 {
@@ -324,5 +403,67 @@
     text-align: center;
     padding: var(--spacing-8);
     color: var(--color-text-secondary);
+  }
+
+  .filter-menu-container {
+    position: relative;
+  }
+
+  .filter-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    min-width: 200px;
+    box-shadow: 0 0px 32px 0px rgb(0 0 0 / 0.25);
+    z-index: var(--z-tooltip);
+    padding: var(--spacing-1);
+  }
+
+  .category-header {
+    padding: var(--spacing-2) var(--spacing-3);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--spacing-1);
+  }
+
+  .filter-option {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-2) var(--spacing-3);
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-size: var(--font-size-base);
+    transition: all 0.2s;
+    border-radius: var(--radius-md);
+    text-align: left;
+  }
+
+  .filter-option:hover,
+  .filter-option.active {
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
+  }
+
+  .filter-option .item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    color: inherit;
+  }
+
+  .icon-button.active {
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
   }
 </style>

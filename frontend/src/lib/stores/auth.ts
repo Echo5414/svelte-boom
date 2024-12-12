@@ -6,57 +6,73 @@ interface User {
   username: string;
   email: string;
   steamId: string;
-  avatar: string;
-  provider: string;
+  avatar?: string;
 }
 
-// Get initial state from localStorage or default to null
-const storedUser = browser ? localStorage.getItem('user') : null;
-const initialValue = storedUser ? JSON.parse(storedUser) : null;
+function createUserStore() {
+  const { subscribe, set, update } = writable<User | null>(null);
 
-// Create the store with initial value
-export const user = writable<User | null>(initialValue);
+  return {
+    subscribe,
+    set: (user: User | null) => {
+      console.log('Setting user:', user);
+      set(user);
+    },
+    update,
+    login: (userData: User, jwt: string) => {
+      if (browser) {
+        localStorage.setItem('jwt', jwt);
+      }
+      set(userData);
+    },
+    logout: () => {
+      if (browser) {
+        localStorage.removeItem('jwt');
+      }
+      set(null);
+    },
+    init: async () => {
+      if (!browser) {
+        set(null);
+        return;
+      }
 
-// Subscribe to changes and save to localStorage
-if (browser) {
-  user.subscribe(value => {
-    if (value) {
-      localStorage.setItem('user', JSON.stringify(value));
-    } else {
-      localStorage.removeItem('user');
-      localStorage.removeItem('jwt');
+      const jwt = localStorage.getItem('jwt');
+      if (!jwt) {
+        set(null);
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:1337/api/users/me', {
+          headers: {
+            'Authorization': `Bearer ${jwt}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+
+        const userData = await response.json();
+        set(userData);
+      } catch (error) {
+        console.error('Error initializing user:', error);
+        localStorage.removeItem('jwt');
+        set(null);
+      }
     }
-  });
+  };
 }
 
-// Helper functions
-export const login = (userData: User, jwt: string) => {
-  if (!browser) return;
+const userStore = createUserStore();
 
-  console.log('Login called with:', { userData, jwt });
-  
-  try {
-    // First save to localStorage
-    localStorage.setItem('jwt', jwt);
-    localStorage.setItem('user', JSON.stringify(userData));
-    console.log('Data saved to localStorage');
-    
-    // Then update store
-    user.set(userData);
-    console.log('Store updated');
-    
-    // Verify data was saved
-    const savedJwt = localStorage.getItem('jwt');
-    const savedUser = localStorage.getItem('user');
-    console.log('Verification:', { savedJwt, savedUser });
-  } catch (error) {
-    console.error('Error in login:', error);
-    throw error;
-  }
-};
+// Initialize the store when the module loads
+if (browser) {
+  userStore.init();
+}
 
-export const logout = () => {
-  if (browser) {
-    user.set(null);
-  }
-}; 
+// Export the store and login function
+export const user = userStore;
+export const login = userStore.login;
+export const logout = userStore.logout; 

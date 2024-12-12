@@ -9,8 +9,7 @@
     "displayName": "User"
   },
   "options": {
-    "draftAndPublish": false,
-    "timestamps": true
+    "draftAndPublish": false
   },
   "attributes": {
     "username": {
@@ -67,8 +66,7 @@
       "configurable": false
     },
     "steamId": {
-      "type": "string",
-      "unique": true
+      "type": "string"
     },
     "avatar": {
       "type": "string"
@@ -78,6 +76,12 @@
       "relation": "oneToMany",
       "target": "api::grenade.grenade",
       "mappedBy": "user"
+    },
+    "likedGrenades": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::grenade.grenade",
+      "mappedBy": "likedBy"
     }
   }
 }

@@ -3,6 +3,7 @@
   import { cubicOut } from 'svelte/easing';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
+  import { user } from '$lib/stores/auth';
 
   const STRAPI_URL = 'http://localhost:1337';
 
@@ -67,21 +68,23 @@
     const grenadeId = $page.params.id;
     try {
         const response = await fetch(`${STRAPI_URL}/api/grenades?filters[id][$eq]=${grenadeId}&populate=*&status=published`);
-        const data = await response.json();
+        const { data } = await response.json();
         
         console.log('API Response:', data);
         
-        if (!data || !data.data || !Array.isArray(data.data) || data.data.length === 0) {
+        if (!data || !Array.isArray(data) || data.length === 0) {
             console.error('No grenade data found');
             return;
         }
 
-        const grenadeData = data.data[0];
+        const grenadeData = data[0];
         
         if (!grenadeData) {
             console.error('Invalid grenade data structure');
             return;
         }
+
+        console.log('Raw grenade data:', grenadeData);
         
         grenade = {
             id: grenadeData.id,
@@ -106,22 +109,19 @@
                 : null,
             map: grenadeData.map?.name || 'Unknown',
             position: grenadeData.position || '',
+            likedBy: Array.isArray(grenadeData.likedBy) ? grenadeData.likedBy : []
         };
 
-        onGrenadeLoad(grenade);
-        console.log('Processed grenade data:', grenade);
-
-        // Set initial tab based on available content
-        if (grenade) {
-            if (grenade.video) {
-                activeTab = 'video';
-            } else if (grenade.lineup) {
-                activeTab = 'lineup';
-            }
+        // Set initial like state
+        if ($user) {
+            const likedByArray = Array.isArray(grenade.likedBy) ? grenade.likedBy : [];
+            isLiked = likedByArray.some(u => u.id === $user.id);
+            console.log('Initial like state:', { isLiked, userId: $user.id, likedBy: likedByArray });
         }
+
+        onGrenadeLoad(grenade);
     } catch (error) {
         console.error('Error fetching grenade details:', error);
-        console.error('Stack trace:', error.stack);
     }
   }
 
@@ -151,8 +151,59 @@
     }
   }
 
-  function toggleLike() {
-    isLiked = !isLiked;
+  async function toggleLike() {
+    if (!grenade) return;
+    
+    const jwt = localStorage.getItem('jwt');
+    if (!jwt) {
+      console.error('No JWT found - user must be logged in to like');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${STRAPI_URL}/api/grenades/${grenade.id}/${isLiked ? 'unlike' : 'like'}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${jwt}`
+        }
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Error toggling like:', error);
+        return;
+      }
+
+      const { data } = await response.json();
+      console.log('Response from like/unlike:', data);
+
+      grenade = {
+        ...grenade,
+        likes: data.likes,
+        likedBy: data.likedBy || []
+      };
+
+      // Force update isLiked based on the new likedBy array
+      isLiked = grenade.likedBy.some(u => u.id === $user?.id);
+      console.log('Updated like state:', { isLiked, likedBy: grenade.likedBy });
+
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  }
+
+  // Update the reactive statement to check user store
+  $: {
+    if (grenade?.likedBy && $user) {
+        const likedByArray = Array.isArray(grenade.likedBy) ? grenade.likedBy : [];
+        console.log('Checking like status:', { 
+            likes: grenade.likes,
+            likedBy: likedByArray,
+            userId: $user.id,
+            hasLiked: likedByArray.some(u => u.id === $user.id)
+        });
+        isLiked = likedByArray.some(u => u.id === $user.id);
+    }
   }
 
   function toggleBookmark() {
@@ -559,15 +610,16 @@
               </div>
 
               <button 
-                class="interaction-btn" 
-                class:active={isLiked} 
+                class="action-btn"
+                class:active={isLiked}
                 on:click={toggleLike}
-                style="animation-delay: {getControlDelay(2)}ms"
+                disabled={!$user}
+                title={$user ? 'Like this grenade' : 'Login to like grenades'}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2">
-                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                 </svg>
-                <span>{grenade.likes}</span>
+                <span>{grenade?.likes || 0}</span>
               </button>
 
               <button 
@@ -1564,5 +1616,38 @@
   /* Hide the entire tab controls if no media is available */
   .tab-controls:empty {
     display: none;
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-2) var(--spacing-3);
+    background: var(--color-surface);
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-base);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .action-btn:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
+  }
+
+  .action-btn.active {
+    color: var(--color-primary);
+  }
+
+  .action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .action-btn:disabled:hover {
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
   }
 </style> 
