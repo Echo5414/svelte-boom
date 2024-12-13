@@ -67,7 +67,7 @@
   async function fetchGrenadeDetails() {
     const grenadeId = $page.params.id;
     try {
-        const response = await fetch(`${STRAPI_URL}/api/grenades?filters[id][$eq]=${grenadeId}&populate=*&status=published`);
+        const response = await fetch(`${STRAPI_URL}/api/grenades?filters[id][$eq]=${grenadeId}&populate=*&publicationState=live`);
         const { data } = await response.json();
         
         console.log('API Response:', data);

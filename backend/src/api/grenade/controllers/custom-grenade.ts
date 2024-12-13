@@ -1,6 +1,5 @@
 import { factories } from '@strapi/strapi';
 import { Context } from 'koa';
-import type { Strapi as StrapiType } from '@strapi/types/dist/core';
 
 interface User {
   id: number;
@@ -9,16 +8,9 @@ interface User {
 
 interface GrenadeEntity {
   id: number;
-  documentId: string;
-  title?: string;
   likes?: number;
-  views?: number;
-  position?: string;
-  public?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  publishedAt?: string;
   likedBy?: User[];
+  publishedAt?: string;
 }
 
 export default factories.createCoreController('api::grenade.grenade', ({ strapi }) => ({
@@ -31,19 +23,16 @@ export default factories.createCoreController('api::grenade.grenade', ({ strapi 
     }
 
     try {
-      // First find the grenade with its relations
+      // Fetch the grenade
       const existingGrenade = await strapi.db.query('api::grenade.grenade').findOne({
         where: { id },
-        populate: ['likedBy']
+        populate: ['likedBy'],
       }) as GrenadeEntity;
-
-      console.log('Found grenade:', existingGrenade);
 
       if (!existingGrenade) {
         return ctx.notFound('Grenade not found');
       }
 
-      // Check if already liked
       const likedByUsers = existingGrenade.likedBy || [];
       const alreadyLiked = likedByUsers.some(u => u.id === user.id);
 
@@ -51,31 +40,26 @@ export default factories.createCoreController('api::grenade.grenade', ({ strapi 
         return ctx.badRequest('You have already liked this grenade');
       }
 
-      // Update the grenade
-      const updatedGrenade = await strapi.db.query('api::grenade.grenade').update({
-        where: { id },
+      // Create the new likedBy array in the required format
+      const updatedLikedBy = [
+        ...likedByUsers.map(u => ({ id: u.id })),
+        { id: user.id }
+      ];
+
+      const updatedGrenade = await strapi.entityService.update('api::grenade.grenade', id, {
         data: {
           likes: (existingGrenade.likes || 0) + 1,
-          likedBy: {
-            connect: [user.id]
-          }
+          likedBy: updatedLikedBy as any, // Force type to any here
+          publishedAt: existingGrenade.publishedAt || new Date().toISOString(),
         },
-        populate: ['likedBy']
+        populate: ['likedBy'],
       }) as GrenadeEntity;
-
-      // Fetch fresh data to ensure we have the updated relations
-      const finalGrenade = await strapi.db.query('api::grenade.grenade').findOne({
-        where: { id },
-        populate: ['likedBy']
-      }) as GrenadeEntity;
-
-      console.log('Final grenade after like:', finalGrenade);
 
       return {
         data: {
-          id: finalGrenade.id,
-          likes: finalGrenade.likes,
-          likedBy: finalGrenade.likedBy || []
+          id: parseInt(id),
+          likes: updatedGrenade.likes,
+          likedBy: updatedGrenade.likedBy || []
         }
       };
 
@@ -96,7 +80,7 @@ export default factories.createCoreController('api::grenade.grenade', ({ strapi 
     try {
       const existingGrenade = await strapi.db.query('api::grenade.grenade').findOne({
         where: { id },
-        populate: ['likedBy']
+        populate: ['likedBy'],
       }) as GrenadeEntity;
 
       if (!existingGrenade) {
@@ -110,21 +94,23 @@ export default factories.createCoreController('api::grenade.grenade', ({ strapi 
         return ctx.badRequest('You have not liked this grenade');
       }
 
-      // Update the grenade
-      const updatedGrenade = await strapi.db.query('api::grenade.grenade').update({
-        where: { id },
+      // Filter out the user and convert to [{ id: number }] format
+      const updatedLikedBy = likedByUsers
+        .filter(u => u.id !== user.id)
+        .map(u => ({ id: u.id }));
+
+      const updatedGrenade = await strapi.entityService.update('api::grenade.grenade', id, {
         data: {
           likes: Math.max((existingGrenade.likes || 0) - 1, 0),
-          likedBy: {
-            disconnect: [user.id]
-          }
+          likedBy: updatedLikedBy as any,
+          publishedAt: existingGrenade.publishedAt || new Date().toISOString(),
         },
-        populate: ['likedBy']
+        populate: ['likedBy'],
       }) as GrenadeEntity;
 
-      return {
+      return { 
         data: {
-          id: updatedGrenade.id,
+          id: parseInt(id), // Wichtig: Hier geben wir die ursprüngliche ID zurück
           likes: updatedGrenade.likes,
           likedBy: updatedGrenade.likedBy || []
         }
@@ -135,4 +121,4 @@ export default factories.createCoreController('api::grenade.grenade', ({ strapi 
       return ctx.internalServerError('An error occurred while unliking the grenade');
     }
   }
-})); 
+}));
