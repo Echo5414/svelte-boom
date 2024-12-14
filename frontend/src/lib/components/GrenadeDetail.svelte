@@ -120,6 +120,9 @@
             console.log('Initial like state:', { isLiked, userId: $user.id, likedBy: likedByArray });
         }
 
+        // Set initial active tab - prefer video if available
+        activeTab = grenade.video ? 'video' : 'lineup';
+
         onGrenadeLoad(grenade);
     } catch (error) {
         console.error('Error fetching grenade details:', error);
@@ -309,16 +312,10 @@
     isExpanded = !isExpanded;
   }
 
-  function switchTab(tab: 'video' | 'lineup') {
-    // Only switch if the content for that tab exists
-    if (tab === 'video' && !grenade?.video) return;
-    if (tab === 'lineup' && !grenade?.lineup) return;
-    
+  function switchTab(tab) {
     activeTab = tab;
-    if (videoElement && tab === 'lineup') {
-      videoElement.pause();
-      isVideoPlaying = false;
-    }
+    showCrosshair = false;
+    zoomLevel = 1;
   }
 
   async function handleCopyPosition() {
@@ -430,7 +427,7 @@
               />
               
               <div class="video-controls-wrapper">
-                <div class="video-controls">
+                <div class="video-controls" transition:fade={{ duration: transitionDuration }}>
                   <div class="left-controls">
                     <button class="control-btn" on:click={toggleVideo}>
                       {#if isVideoPlaying}
@@ -559,6 +556,7 @@
                 src={grenade.lineup}
                 alt="Lineup screenshot"
                 style="transform: scale({zoomLevel})"
+                class="lineup-image"
               />
             {/if}
 
@@ -1650,5 +1648,12 @@
   .action-btn:disabled:hover {
     background: var(--color-surface);
     color: var(--color-text-secondary);
+  }
+
+  .lineup-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    cursor: default;
   }
 </style> 
