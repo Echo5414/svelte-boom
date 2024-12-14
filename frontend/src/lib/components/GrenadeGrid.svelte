@@ -12,39 +12,61 @@
   let searchFilteredGrenades = [];
   let animationKey = 0;
 
-  $: {
-    if ($filters || $searchTerm) {
-      animationKey++;
-      applyFilters();
-    }
-  }
-
   async function fetchGrenades() {
+    console.log('Fetching grenades...');
     try {
       const response = await fetch(`${STRAPI_URL}/api/grenades?status=published&populate=*`);
       const data = await response.json();
-      console.log('Raw grenade data:', data); // Debug log
+      console.log('Raw API response:', data);
       
-      grenades = data.data.map(grenade => ({
-        id: grenade.id,
-        title: grenade.title,
-        author: grenade.user ? grenade.user.username : 'Unknown',
-        likes: grenade.likes,
-        views: grenade.views,
-        type: grenade.type.name,
-        map: grenade.map.name, // Make sure this matches exactly with the filter value
-        team: grenade.team.name, // Make sure this matches exactly with the filter value
-        image: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg',
-        video: grenade.video ? {
-          src: `${STRAPI_URL}${grenade.video.url}`,
-          preview: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg'
-        } : null
-      }));
+      grenades = data.data.map(grenade => {
+        console.log('Processing grenade:', {
+          id: grenade.id,
+          documentId: grenade.documentId,
+          title: grenade.title
+        });
+        
+        return {
+          id: grenade.id,
+          documentId: grenade.documentId,
+          title: grenade.title,
+          author: grenade.user?.username || 'Unknown',
+          likes: grenade.likes || 0,
+          views: grenade.views || 0,
+          type: grenade.type?.name,
+          map: grenade.map?.name,
+          team: grenade.team?.name,
+          image: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg',
+          video: grenade.video ? {
+            src: `${STRAPI_URL}${grenade.video.url}`,
+            preview: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg'
+          } : null
+        };
+      });
       
-      console.log('Processed grenades:', grenades); // Debug log
-      applyFilters();
+      console.log('All processed grenades:', grenades.map(g => ({
+        id: g.id,
+        documentId: g.documentId,
+        title: g.title
+      })));
+      
     } catch (error) {
       console.error('Error fetching grenades:', error);
+    }
+  }
+
+  // Make sure we call fetchGrenades on mount
+  onMount(async () => {
+    console.log('Component mounted, fetching grenades...');
+    await fetchGrenades();
+  });
+
+  // Watch for filter changes
+  $: {
+    if ($filters || $searchTerm) {
+      console.log('Filters changed, applying filters...');
+      animationKey++;
+      applyFilters();
     }
   }
 
@@ -113,13 +135,9 @@
     }
   }
 
-  function handleGrenadeClick(id) {
-    goto(`/grenades/${id}`);
+  function handleGrenadeClick(documentId) {
+    goto(`/grenades/${documentId}`);
   }
-
-  onMount(() => {
-    applyFilters();
-  });
 </script>
 
 <div class="grenade-grid">
@@ -133,7 +151,7 @@
       }}
       on:mouseenter={(e) => handleMouseEnter(e, grenade)}
       on:mouseleave={(e) => handleMouseLeave(e, grenade)}
-      on:click={() => handleGrenadeClick(grenade.id)}
+      on:click={() => handleGrenadeClick(grenade.documentId)}
     >
       <div class="thumbnail">
         {#if grenade.video}
@@ -163,18 +181,18 @@
         <div class="card-meta">
           <span class="author">{grenade.author}</span>
           <div class="stats">
-            <span class="likes">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
-              {grenade.likes}
-            </span>
             <span class="views">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
               {grenade.views}
+            </span>
+            <span class="likes">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+              {grenade.likes || 0}
             </span>
           </div>
         </div>

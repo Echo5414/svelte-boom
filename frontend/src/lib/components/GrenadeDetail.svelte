@@ -65,9 +65,9 @@
   });
 
   async function fetchGrenadeDetails() {
-    const grenadeId = $page.params.id;
+    const grenadeDocumentId = $page.params.id;
     try {
-        const response = await fetch(`${STRAPI_URL}/api/grenades?filters[id][$eq]=${grenadeId}&populate=*&publicationState=live`);
+        const response = await fetch(`${STRAPI_URL}/api/grenades?filters[documentId][$eq]=${grenadeDocumentId}&populate=*&publicationState=live`);
         const { data } = await response.json();
         
         console.log('API Response:', data);
@@ -88,6 +88,7 @@
         
         grenade = {
             id: grenadeData.id,
+            documentId: grenadeData.documentId,
             title: grenadeData.title || 'Untitled',
             author: grenadeData.user?.username || 'Unknown',
             userId: grenadeData.user?.id,
@@ -161,7 +162,7 @@
     }
 
     try {
-      const response = await fetch(`${STRAPI_URL}/api/grenades/${grenade.id}/${isLiked ? 'unlike' : 'like'}`, {
+      const response = await fetch(`${STRAPI_URL}/api/grenades/${grenade.documentId}/${isLiked ? 'unlike' : 'like'}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${jwt}`

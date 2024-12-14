@@ -2,7 +2,7 @@ export default {
   routes: [
     {
       method: 'POST',
-      path: '/grenades/:id/like',
+      path: '/grenades/:documentId/like',
       handler: 'custom-grenade.likeGrenade',
       config: {
         policies: [],
@@ -14,7 +14,7 @@ export default {
     },
     {
       method: 'POST',
-      path: '/grenades/:id/unlike',
+      path: '/grenades/:documentId/unlike',
       handler: 'custom-grenade.unlikeGrenade',
       config: {
         policies: [],

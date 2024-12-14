@@ -15,7 +15,7 @@ interface GrenadeEntity {
 
 export default factories.createCoreController('api::grenade.grenade', ({ strapi }) => ({
   async likeGrenade(ctx: Context) {
-    const { id } = ctx.params;
+    const { documentId } = ctx.params;
     const user = ctx.state.user;
 
     if (!user) {
@@ -23,9 +23,8 @@ export default factories.createCoreController('api::grenade.grenade', ({ strapi 
     }
 
     try {
-      // Fetch the grenade
       const existingGrenade = await strapi.db.query('api::grenade.grenade').findOne({
-        where: { id },
+        where: { documentId },
         populate: ['likedBy'],
       }) as GrenadeEntity;
 
@@ -40,24 +39,24 @@ export default factories.createCoreController('api::grenade.grenade', ({ strapi 
         return ctx.badRequest('You have already liked this grenade');
       }
 
-      // Create the new likedBy array in the required format
       const updatedLikedBy = [
         ...likedByUsers.map(u => ({ id: u.id })),
         { id: user.id }
       ];
 
-      const updatedGrenade = await strapi.entityService.update('api::grenade.grenade', id, {
+      const updatedGrenade = await strapi.documents('api::grenade.grenade').update({
+        documentId: documentId,
         data: {
           likes: (existingGrenade.likes || 0) + 1,
-          likedBy: updatedLikedBy as any, // Force type to any here
-          publishedAt: existingGrenade.publishedAt || new Date().toISOString(),
+          likedBy: updatedLikedBy,
         },
         populate: ['likedBy'],
+        status: 'published'
       }) as GrenadeEntity;
 
       return {
         data: {
-          id: parseInt(id),
+          documentId: documentId,
           likes: updatedGrenade.likes,
           likedBy: updatedGrenade.likedBy || []
         }
@@ -70,7 +69,7 @@ export default factories.createCoreController('api::grenade.grenade', ({ strapi 
   },
 
   async unlikeGrenade(ctx: Context) {
-    const { id } = ctx.params;
+    const { documentId } = ctx.params;
     const user = ctx.state.user;
 
     if (!user) {
@@ -79,7 +78,7 @@ export default factories.createCoreController('api::grenade.grenade', ({ strapi 
 
     try {
       const existingGrenade = await strapi.db.query('api::grenade.grenade').findOne({
-        where: { id },
+        where: { documentId },
         populate: ['likedBy'],
       }) as GrenadeEntity;
 
@@ -94,23 +93,23 @@ export default factories.createCoreController('api::grenade.grenade', ({ strapi 
         return ctx.badRequest('You have not liked this grenade');
       }
 
-      // Filter out the user and convert to [{ id: number }] format
       const updatedLikedBy = likedByUsers
         .filter(u => u.id !== user.id)
         .map(u => ({ id: u.id }));
 
-      const updatedGrenade = await strapi.entityService.update('api::grenade.grenade', id, {
+      const updatedGrenade = await strapi.documents('api::grenade.grenade').update({
+        documentId: documentId,
         data: {
           likes: Math.max((existingGrenade.likes || 0) - 1, 0),
-          likedBy: updatedLikedBy as any,
-          publishedAt: existingGrenade.publishedAt || new Date().toISOString(),
+          likedBy: updatedLikedBy,
         },
         populate: ['likedBy'],
+        status: 'published'
       }) as GrenadeEntity;
 
       return { 
         data: {
-          id: parseInt(id), // Wichtig: Hier geben wir die ursprüngliche ID zurück
+          documentId: documentId,
           likes: updatedGrenade.likes,
           likedBy: updatedGrenade.likedBy || []
         }

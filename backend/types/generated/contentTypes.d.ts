@@ -443,7 +443,7 @@ export interface ApiGrenadeGrenade extends Struct.CollectionTypeSchema {
     singularName: 'grenade';
   };
   options: {
-    draftAndPublish: false;
+    draftAndPublish: true;
   };
   attributes: {
     airtime: Schema.Attribute.Decimal;
