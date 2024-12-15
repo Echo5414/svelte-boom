@@ -6,22 +6,34 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import UserSection from '$lib/components/UserSection.svelte';
 	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
+	import { loadFilterData } from '$lib/stores/filters';
 
 	$: isAuthRoute = $page.url.pathname.startsWith('/auth');
+
+	// Load filter data immediately and track loading state
+	let isLoading = true;
+	let filterDataPromise = loadFilterData().finally(() => {
+		isLoading = false;
+	});
 </script>
 
 {#if !isAuthRoute}
-	<div class="layout">
-		<Sidebar />
-		<main>
-			<div class="content">
-				<div class="container">
-					<slot />
+	{#await filterDataPromise}
+		<div class="loading">Loading...</div>
+	{:then}
+		<div class="layout">
+			<Sidebar />
+			<main>
+				<div class="content">
+					<div class="container">
+						<slot />
+					</div>
 				</div>
-			</div>
-		</main>
-		<UserSection />
-	</div>
+			</main>
+			<UserSection />
+		</div>
+	{/await}
 {:else}
 	<slot />
 {/if}
@@ -65,5 +77,13 @@
 		max-width: var(--content-max-width);
 		margin: 0 auto;
 		width: 100%;
+	}
+
+	.loading {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		height: 100vh;
+		color: var(--color-text-secondary);
 	}
 </style>

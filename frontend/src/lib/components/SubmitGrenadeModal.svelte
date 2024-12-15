@@ -3,6 +3,8 @@
   import { fade, fly } from 'svelte/transition';
   import { onMount } from 'svelte';
   import { user } from '$lib/stores/auth';
+  import { mapOptions, teamOptions, grenadeTypes } from '$lib/stores/filters';
+  import { notifyGrenadeChange } from '$lib/stores/grenades';
   const dispatch = createEventDispatcher();
 
   export let show = false;
@@ -414,6 +416,7 @@
       
       closeModal();
       dispatch('success', result);
+      notifyGrenadeChange();
     } catch (err) {
       console.error('Submission error:', err);
       error = err.message;

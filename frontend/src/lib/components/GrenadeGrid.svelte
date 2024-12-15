@@ -1,5 +1,5 @@
-<script>
-  import { filters } from '$lib/stores/filters';
+<script lang="ts">
+  import { filters, loadFilterData } from '$lib/stores/filters';
   import { fade, fly } from 'svelte/transition';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
@@ -8,6 +8,7 @@
   const STRAPI_URL = 'http://localhost:1337';
 
   export let grenades = [];
+  export let skipFetch = false;
   let filteredGrenades = [];
   let searchFilteredGrenades = [];
   let animationKey = 0;
@@ -17,65 +18,70 @@
     try {
       const response = await fetch(`${STRAPI_URL}/api/grenades?status=published&populate=*`);
       const data = await response.json();
-      console.log('Raw API response:', data);
       
-      grenades = data.data.map(grenade => {
-        console.log('Processing grenade:', {
-          id: grenade.id,
-          documentId: grenade.documentId,
-          title: grenade.title
-        });
-        
-        return {
-          id: grenade.id,
-          documentId: grenade.documentId,
-          title: grenade.title,
-          author: grenade.user?.username || 'Unknown',
-          likes: grenade.likes || 0,
-          views: grenade.views || 0,
-          type: grenade.type?.name,
-          map: grenade.map?.name,
-          team: grenade.team?.name,
-          image: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg',
-          video: grenade.video ? {
-            src: `${STRAPI_URL}${grenade.video.url}`,
-            preview: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg'
-          } : null
-        };
-      });
-      
-      console.log('All processed grenades:', grenades.map(g => ({
-        id: g.id,
-        documentId: g.documentId,
-        title: g.title
-      })));
-      
+      grenades = data.data.map(processGrenade);
     } catch (error) {
       console.error('Error fetching grenades:', error);
     }
   }
 
-  // Make sure we call fetchGrenades on mount
+  // Separate function to process grenades consistently
+  function processGrenade(grenade) {
+    if (!grenade) return null;
+
+    // If it's already in the correct format, just add the status
+    if (grenade.documentId) {
+      return {
+        ...grenade,
+        status: grenade.publishedAt ? 'published' : 'draft'
+      };
+    }
+
+    // Otherwise, process it from the API format
+    return {
+      id: grenade.id,
+      documentId: grenade.documentId,
+      title: grenade.title,
+      author: grenade.author || grenade.user?.username || 'Unknown',
+      likes: grenade.likes || 0,
+      views: grenade.views || 0,
+      type: grenade.type?.name || grenade.type,
+      map: grenade.map?.name || grenade.map,
+      team: grenade.team?.name || grenade.team,
+      image: grenade.thumbnail || grenade.image,
+      video: grenade.video ? {
+        src: grenade.video,
+        preview: grenade.thumbnail || grenade.image
+      } : null,
+      status: grenade.publishedAt ? 'published' : 'draft'
+    };
+  }
+
   onMount(async () => {
-    console.log('Component mounted, fetching grenades...');
-    await fetchGrenades();
+    if (!skipFetch) {
+      console.log('Fetching grenades from GrenadeGrid...');
+      await fetchGrenades();
+    } else {
+      console.log('Using passed grenades:', grenades);
+      applyFilters();
+    }
   });
 
-  // Watch for filter changes
+  // Remove or modify the reactive statement that watches filters
   $: {
-    if ($filters || $searchTerm) {
+    if (($filters || $searchTerm) && grenades.length > 0) {
       console.log('Filters changed, applying filters...');
       animationKey++;
       applyFilters();
     }
   }
 
-  // Add function to apply filters
   function applyFilters() {
-    console.log('Applying filters with:', $filters); // Debug log
-    console.log('Available grenades:', grenades); // Debug log
+    console.log('Applying filters with:', $filters);
     
     filteredGrenades = grenades.filter(grenade => {
+      if (!grenade) return false;
+
       // Map filter
       if ($filters.map !== 'All Maps' && grenade.map !== $filters.map) {
         return false;
@@ -94,7 +100,7 @@
       return true;
     });
 
-    // Then apply the search filter
+    // Apply search filter
     if ($searchTerm) {
       const searchLower = $searchTerm.toLowerCase();
       searchFilteredGrenades = filteredGrenades.filter(grenade => {
@@ -104,23 +110,19 @@
     } else {
       searchFilteredGrenades = filteredGrenades;
     }
-
-    console.log('Filtered grenades:', filteredGrenades); // Debug log
   }
 
-  // Make sure we're watching the filters store
-  $: {
-    console.log('Filters changed:', $filters); // Debug log
-    if (grenades.length > 0) {
-      applyFilters();
-    }
-  }
-
+  // Handle video playback with error prevention
   function handleMouseEnter(event, grenade) {
     if (grenade.video) {
       const video = event.currentTarget.querySelector('video');
       if (video) {
-        video.play();
+        video.play().catch(err => {
+          // Silently handle interrupted playback
+          if (err.name !== 'AbortError') {
+            console.error('Video playback error:', err);
+          }
+        });
       }
     }
   }
@@ -134,15 +136,12 @@
       }
     }
   }
-
-  function handleGrenadeClick(documentId) {
-    goto(`/grenades/${documentId}`);
-  }
 </script>
 
 <div class="grenade-grid">
   {#each searchFilteredGrenades as grenade, i (grenade.id + animationKey)}
-    <div 
+    <a 
+      href="/grenades/{grenade.documentId}{grenade.status === 'draft' ? '?status=draft' : ''}" 
       class="grenade-card"
       in:fly={{
         y: 20,
@@ -151,7 +150,6 @@
       }}
       on:mouseenter={(e) => handleMouseEnter(e, grenade)}
       on:mouseleave={(e) => handleMouseLeave(e, grenade)}
-      on:click={() => handleGrenadeClick(grenade.documentId)}
     >
       <div class="thumbnail">
         {#if grenade.video}
@@ -197,7 +195,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </a>
   {/each}
 </div>
 

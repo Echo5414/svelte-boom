@@ -7,6 +7,7 @@
   import { fade, slide } from 'svelte/transition';
   import { onMount } from 'svelte';
   import { searchTerm } from '$lib/stores/search';
+  import { loadFilterData } from '$lib/stores/filters';
   
   let isSearchOpen = false;
   let searchInput;
@@ -31,27 +32,34 @@
   async function fetchGrenades() {
     try {
       const response = await fetch(`${STRAPI_URL}/api/grenades?status=published&populate=*`);
-      const data = await response.json();
+      const { data } = await response.json();
       
-      grenades = data.data.map(grenade => ({
+      grenades = data.map(grenade => ({
         id: grenade.id,
-        title: grenade.title,
-        author: grenade.user ? grenade.user.username : 'Unknown',
-        likes: grenade.likes,
-        views: grenade.views,
-        type: grenade.type.name,
-        map: grenade.map.name,
-        team: grenade.team.name,
+        documentId: grenade.documentId,
+        title: grenade.title || 'Untitled',
+        author: grenade.user?.username || 'Unknown',
+        likes: grenade.likes || 0,
+        views: grenade.views || 0,
+        type: grenade.type?.name || 'Unknown',
+        map: grenade.map?.name || 'Unknown',
+        team: grenade.team?.name || 'Unknown',
         createdAt: grenade.createdAt,
-        image: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg',
+        image: grenade.thumbnail 
+          ? `${STRAPI_URL}${grenade.thumbnail.url}` 
+          : '/images/default.jpg',
         video: grenade.video ? {
           src: `${STRAPI_URL}${grenade.video.url}`,
-          preview: grenade.thumbnail ? `${STRAPI_URL}${grenade.thumbnail.url}` : '/images/default.jpg'
+          preview: grenade.thumbnail 
+            ? `${STRAPI_URL}${grenade.thumbnail.url}` 
+            : '/images/default.jpg'
         } : null
       }));
       
       // Initial sort by newest
       grenades.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      console.log('Processed grenades:', grenades); // Debug log
     } catch (error) {
       console.error('Error fetching grenades:', error);
     } finally {
@@ -59,11 +67,12 @@
     }
   }
 
-  onMount(() => {
+  onMount(async () => {
     setTimeout(() => {
       headerVisible = true;
     }, 100);
-    fetchGrenades();
+    
+    await fetchGrenades();
   });
 
   function toggleSearch() {
@@ -215,7 +224,7 @@
   {#if isLoading}
     <div class="loading">Loading grenades...</div>
   {:else}
-    <GrenadeGrid {grenades} />
+    <GrenadeGrid {grenades} skipFetch={true} />
   {/if}
 </main>
 

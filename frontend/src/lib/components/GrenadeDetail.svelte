@@ -66,25 +66,60 @@
 
   async function fetchGrenadeDetails() {
     const grenadeDocumentId = $page.params.id;
+    const jwt = localStorage.getItem('jwt');
+    
+    if (!jwt) {
+        console.error('No JWT found');
+        return;
+    }
+
     try {
-        const response = await fetch(`${STRAPI_URL}/api/grenades?filters[documentId][$eq]=${grenadeDocumentId}&populate=*&publicationState=live`);
-        const { data } = await response.json();
-        
-        console.log('API Response:', data);
-        
-        if (!data || !Array.isArray(data) || data.length === 0) {
+        // Check if we're coming from the drafts section
+        const isDraft = window.location.pathname.includes('/drafts/') || 
+                       new URLSearchParams(window.location.search).get('status') === 'draft';
+
+        let response;
+        let data;
+
+        if (isDraft) {
+            // If it's a draft, fetch both to ensure we get the latest version
+            const [publishedResponse, draftResponse] = await Promise.all([
+                fetch(
+                    `${STRAPI_URL}/api/grenades?filters[documentId][$eq]=${grenadeDocumentId}&status=published&populate=*`,
+                    { headers: { 'Authorization': `Bearer ${jwt}` } }
+                ),
+                fetch(
+                    `${STRAPI_URL}/api/grenades?filters[documentId][$eq]=${grenadeDocumentId}&status=draft&populate=*`,
+                    { headers: { 'Authorization': `Bearer ${jwt}` } }
+                )
+            ]);
+
+            const [publishedData, draftData] = await Promise.all([
+                publishedResponse.json(),
+                draftResponse.json()
+            ]);
+
+            // Prefer draft version when coming from drafts
+            if (draftData.data && draftData.data.length > 0) {
+                data = draftData;
+            } else if (publishedData.data && publishedData.data.length > 0) {
+                data = publishedData;
+            }
+        } else {
+            // For published grenades, just fetch the published version
+            response = await fetch(
+                `${STRAPI_URL}/api/grenades?filters[documentId][$eq]=${grenadeDocumentId}&status=published&populate=*`,
+                { headers: { 'Authorization': `Bearer ${jwt}` } }
+            );
+            data = await response.json();
+        }
+
+        if (!data?.data?.[0]) {
             console.error('No grenade data found');
             return;
         }
 
-        const grenadeData = data[0];
-        
-        if (!grenadeData) {
-            console.error('Invalid grenade data structure');
-            return;
-        }
-
-        console.log('Raw grenade data:', grenadeData);
+        const grenadeData = data.data[0];
         
         grenade = {
             id: grenadeData.id,
@@ -110,20 +145,26 @@
                 : null,
             map: grenadeData.map?.name || 'Unknown',
             position: grenadeData.position || '',
-            likedBy: Array.isArray(grenadeData.likedBy) ? grenadeData.likedBy : []
+            likedBy: grenadeData.likedBy || []
         };
 
-        // Set initial like state
+        // Initialize like state
         if ($user) {
-            const likedByArray = Array.isArray(grenade.likedBy) ? grenade.likedBy : [];
-            isLiked = likedByArray.some(u => u.id === $user.id);
-            console.log('Initial like state:', { isLiked, userId: $user.id, likedBy: likedByArray });
+            isLiked = grenade.likedBy.some(u => u.id === $user.id);
+            console.log('Initial like state:', { 
+                userId: $user.id, 
+                likedBy: grenade.likedBy,
+                isLiked 
+            });
         }
 
-        // Set initial active tab - prefer video if available
-        activeTab = grenade.video ? 'video' : 'lineup';
+        // Set initial active tab - prefer video if available, otherwise lineup
+        activeTab = grenade.video ? 'video' : (grenade.lineup ? 'lineup' : 'video');
 
-        onGrenadeLoad(grenade);
+        if (onGrenadeLoad) {
+            onGrenadeLoad(grenade);
+        }
+
     } catch (error) {
         console.error('Error fetching grenade details:', error);
     }
@@ -160,39 +201,40 @@
     
     const jwt = localStorage.getItem('jwt');
     if (!jwt) {
-      console.error('No JWT found - user must be logged in to like');
-      return;
+        console.error('No JWT found - user must be logged in to like');
+        return;
     }
 
     try {
-      const response = await fetch(`${STRAPI_URL}/api/grenades/${grenade.documentId}/${isLiked ? 'unlike' : 'like'}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${jwt}`
+        const response = await fetch(`${STRAPI_URL}/api/grenades/${grenade.documentId}/${isLiked ? 'unlike' : 'like'}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${jwt}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('Error toggling like:', data.error);
+            return;
         }
-      });
 
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Error toggling like:', error);
-        return;
-      }
+        grenade = {
+            ...grenade,
+            likes: data.data.likes,
+            likedBy: data.data.likedBy || []
+        };
 
-      const { data } = await response.json();
-      console.log('Response from like/unlike:', data);
-
-      grenade = {
-        ...grenade,
-        likes: data.likes,
-        likedBy: data.likedBy || []
-      };
-
-      // Force update isLiked based on the new likedBy array
-      isLiked = grenade.likedBy.some(u => u.id === $user?.id);
-      console.log('Updated like state:', { isLiked, likedBy: grenade.likedBy });
+        isLiked = grenade.likedBy.some(u => u.id === $user?.id);
+        console.log('Updated like state:', { 
+            likes: grenade.likes,
+            likedBy: grenade.likedBy,
+            isLiked 
+        });
 
     } catch (error) {
-      console.error('Error toggling like:', error);
+        console.error('Error toggling like:', error);
     }
   }
 
@@ -214,8 +256,23 @@
     isBookmarked = !isBookmarked;
   }
 
-  function handleShare() {
-    // Add share functionality
+  async function handleShare() {
+    try {
+        await navigator.clipboard.writeText(window.location.href);
+        const btn = document.querySelector('.share-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Copied!
+        `;
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy URL:', err);
+    }
   }
 
   function handleTimeUpdate(event) {
@@ -358,7 +415,7 @@
       >
         <!-- Video Container -->
         <div class="video-container" class:fullscreen={isFullscreen}>
-          <div class="video-wrapper">
+          <div class="video-wrapper" class:lineup-mode={activeTab === 'lineup'}>
             <div class="zoom-controls">
               {#if controlsVisible}
                 <button 
@@ -633,14 +690,16 @@
               </button>
 
               <button 
-                class="interaction-btn share-btn" 
+                class="action-btn share-btn" 
                 on:click={handleShare}
                 style="animation-delay: {getControlDelay(4)}ms"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                  <polyline points="16 6 12 2 8 6"/>
-                  <line x1="12" y1="2" x2="12" y2="15"/>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="18" cy="5" r="3"/>
+                  <circle cx="6" cy="12" r="3"/>
+                  <circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
                 </svg>
                 Share
               </button>
@@ -1655,5 +1714,9 @@
     height: 100%;
     object-fit: contain;
     cursor: default;
+  }
+
+  .lineup-mode .video-controls-wrapper {
+    display: none !important;
   }
 </style> 

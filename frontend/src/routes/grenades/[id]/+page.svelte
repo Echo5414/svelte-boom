@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import GrenadeDetail from '$lib/components/GrenadeDetail.svelte';
   import Tooltip from '$lib/components/Tooltip.svelte';
   import { page } from '$app/stores';
@@ -7,17 +7,55 @@
   import { cubicOut } from 'svelte/easing';
   
   let headerVisible = false;
-  let isSearchOpen = false;
-  let searchInput;
-  let searchWidth = tweened(38, {
-    duration: 200,
-    easing: cubicOut
-  });
   const grenadeId = $page.params.id;
 
   let activeTab = 'video';
 
   let grenadeData = null;
+
+  async function fetchGrenade(documentId: string) {
+    const jwt = localStorage.getItem('jwt');
+    if (!jwt) {
+      console.error('No JWT found');
+      return null;
+    }
+
+    try {
+      // Try to fetch the grenade with both statuses in parallel
+      const [publishedResponse, draftResponse] = await Promise.all([
+        fetch(
+          `${STRAPI_URL}/api/grenades?filters[documentId][$eq]=${documentId}&status=published&populate=*`,
+          { headers: { 'Authorization': `Bearer ${jwt}` } }
+        ),
+        fetch(
+          `${STRAPI_URL}/api/grenades?filters[documentId][$eq]=${documentId}&status=draft&populate=*`,
+          { headers: { 'Authorization': `Bearer ${jwt}` } }
+        )
+      ]);
+
+      const [publishedData, draftData] = await Promise.all([
+        publishedResponse.json(),
+        draftResponse.json()
+      ]);
+
+      console.log('Published data:', publishedData); // Debug log
+      console.log('Draft data:', draftData); // Debug log
+
+      // Return either the published or draft version, whichever exists
+      if (publishedData.data && publishedData.data.length > 0) {
+        return publishedData.data[0];
+      }
+
+      if (draftData.data && draftData.data.length > 0) {
+        return draftData.data[0];
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error fetching grenade:', error);
+      return null;
+    }
+  }
 
   function handleGrenadeLoad(data) {
     grenadeData = data;
@@ -33,28 +71,6 @@
 
   function handleBack() {
     history.back();
-  }
-
-  function toggleSearch() {
-    isSearchOpen = !isSearchOpen;
-    searchWidth.set(isSearchOpen ? 238 : 38);
-    
-    if (isSearchOpen) {
-      setTimeout(() => {
-        searchInput?.focus();
-      }, 50);
-    }
-  }
-
-  function handleBlur(event) {
-    if (!event.relatedTarget?.classList.contains('search-trigger')) {
-      isSearchOpen = false;
-      searchWidth.set(38);
-    }
-  }
-
-  function handleSearchClick(event) {
-    event.stopPropagation();
   }
 </script>
 
@@ -90,33 +106,6 @@
       <div class="header-actions">
         {#if headerVisible}
           <div class="header-action" style="animation-delay: {getHeaderDelay(0)}ms">
-            <div 
-              class="search" 
-              style="width: {$searchWidth}px"
-              on:click={handleSearchClick}
-            >
-              <button 
-                class="icon-button search-trigger"
-                on:click={toggleSearch}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="11" cy="11" r="8"/>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                </svg>
-              </button>
-              
-              <input 
-                bind:this={searchInput}
-                type="text" 
-                placeholder="Search grenades..." 
-                class="search-input"
-                class:search-input-visible={isSearchOpen}
-                on:blur={handleBlur}
-              />
-            </div>
-          </div>
-
-          <div class="header-action" style="animation-delay: {getHeaderDelay(1)}ms">
             <Tooltip text="Report" position="bottom">
               <button class="icon-button">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -127,7 +116,7 @@
             </Tooltip>
           </div>
 
-          <div class="header-action" style="animation-delay: {getHeaderDelay(2)}ms">
+          <div class="header-action" style="animation-delay: {getHeaderDelay(1)}ms">
             <Tooltip text="Edit" position="bottom">
               <button class="icon-button">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -137,7 +126,7 @@
             </Tooltip>
           </div>
 
-          <div class="header-action" style="animation-delay: {getHeaderDelay(3)}ms">
+          <div class="header-action" style="animation-delay: {getHeaderDelay(2)}ms">
             <Tooltip text="Close" position="bottom">
               <button class="icon-button" on:click={handleBack}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -297,57 +286,6 @@
 
   .publish-info a:hover {
     text-decoration: underline;
-  }
-
-  .search {
-    position: relative;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
-    border: none;
-  }
-
-  .search-trigger {
-    position: relative;
-    z-index: 2;
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
-    width: 38px;
-    height: 38px;
-  }
-
-  .search-input {
-    position: absolute;
-    left: 0;
-    top: 0;
-    background-color: var(--color-surface);
-    border: none;
-    color: var(--color-text-primary);
-    padding: 0 var(--spacing-4) 0 46px;
-    height: 38px;
-    font-size: var(--font-size-base);
-    width: 100%;
-    opacity: 0;
-    pointer-events: none;
-    visibility: hidden;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
-  }
-
-  .search-input-visible {
-    opacity: 1;
-    pointer-events: auto;
-    visibility: visible;
-  }
-
-  .search-input:focus {
-    outline: none;
-    box-shadow: none;
-  }
-
-  .search-input::placeholder {
-    color: var(--color-text-secondary);
   }
 
   .tab-controls {
