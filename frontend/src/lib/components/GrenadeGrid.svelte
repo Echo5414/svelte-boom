@@ -5,7 +5,7 @@
   import { goto } from '$app/navigation';
   import { searchTerm } from '$lib/stores/search';
   
-  const STRAPI_URL = 'http://localhost:1337';
+  const STRAPI_URL = import.meta.env.VITE_STRAPI_URL;
 
   export let grenades = [];
   export let skipFetch = false;

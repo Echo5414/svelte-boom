@@ -8,7 +8,7 @@
   import { filters } from '$lib/stores/filters';
   const dispatch = createEventDispatcher();
   
-  const STRAPI_URL = 'http://localhost:1337';
+  const STRAPI_URL = import.meta.env.VITE_STRAPI_URL;
   
   // Add state for maps data
   let mapsByCategory = [];

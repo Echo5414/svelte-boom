@@ -3,14 +3,15 @@
   import { goto } from '$app/navigation';
   
   const STEAM_OPENID_URL = 'https://steamcommunity.com/openid/login';
-  const RETURN_URL = 'http://localhost:5173/auth/steam/callback';
+  const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
+  const RETURN_URL = `${FRONTEND_URL}/auth/steam/callback`;
   
   function handleSteamLogin() {
     const params = new URLSearchParams({
       'openid.ns': 'http://specs.openid.net/auth/2.0',
       'openid.mode': 'checkid_setup',
       'openid.return_to': RETURN_URL,
-      'openid.realm': 'http://localhost:5173',
+      'openid.realm': FRONTEND_URL,
       'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
       'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select'
     });

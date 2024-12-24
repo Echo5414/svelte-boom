@@ -44,7 +44,7 @@ function createUserStore() {
       }
 
       try {
-        const response = await fetch('http://localhost:1337/api/users/me', {
+        const response = await fetch(`${import.meta.env.VITE_STRAPI_URL}/api/users/me`, {
           headers: {
             'Authorization': `Bearer ${jwt}`
           }

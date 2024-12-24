@@ -10,6 +10,8 @@
   import { loadFilterData } from '$lib/stores/filters';
   import { filters } from '$lib/stores/filters';
   
+  const STRAPI_URL = import.meta.env.VITE_STRAPI_URL;
+  
   let isSearchOpen = false;
   let searchInput;
   let searchWidth = tweened(38, {
@@ -17,7 +19,6 @@
     easing: cubicOut
   });
   let headerVisible = false;
-  const STRAPI_URL = 'http://localhost:1337';
   let grenades = [];
   let isLoading = true;
   let showFilterMenu = false;
@@ -47,12 +48,12 @@
         team: grenade.team?.name || 'Unknown',
         createdAt: grenade.createdAt,
         image: grenade.thumbnail 
-          ? `${STRAPI_URL}${grenade.thumbnail.url}` 
+          ? `${import.meta.env.VITE_STRAPI_URL}${grenade.thumbnail.url}` 
           : '/images/default.jpg',
         video: grenade.video ? {
-          src: `${STRAPI_URL}${grenade.video.url}`,
+          src: `${import.meta.env.VITE_STRAPI_URL}${grenade.video.url}`,
           preview: grenade.thumbnail 
-            ? `${STRAPI_URL}${grenade.thumbnail.url}` 
+            ? `${import.meta.env.VITE_STRAPI_URL}${grenade.thumbnail.url}` 
             : '/images/default.jpg'
         } : null
       }));

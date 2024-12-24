@@ -1,6 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  
+  import { goto } from '$app/navigation';
+
+  const STRAPI_URL = import.meta.env.VITE_STRAPI_URL;
+
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
     

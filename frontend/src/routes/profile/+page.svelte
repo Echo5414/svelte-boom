@@ -7,7 +7,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
 
-  const STRAPI_URL = 'http://localhost:1337';
+  const STRAPI_URL = import.meta.env.VITE_STRAPI_URL;
 
   // Get initial tab from URL or default to 'published'
   $: activeTab = $page.url.searchParams.get('tab') || 'published';

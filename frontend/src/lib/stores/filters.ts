@@ -1,6 +1,7 @@
 import { writable, get, derived } from 'svelte/store';
+import { browser } from '$app/environment';
 
-const STRAPI_URL = 'http://localhost:1337';
+const STRAPI_URL = import.meta.env.VITE_STRAPI_URL;
 
 // Create a store for the loading state
 const isLoading = writable(false);
@@ -32,6 +33,9 @@ let isDataLoaded = false;
 let loadingPromise: Promise<void> | null = null;
 
 export async function loadFilterData() {
+  // Only fetch on client side
+  if (!browser) return;
+
   // Return existing promise if loading
   if (loadingPromise) {
     return loadingPromise;

@@ -5,7 +5,7 @@
   import { page } from '$app/stores';
   import { user } from '$lib/stores/auth';
 
-  const STRAPI_URL = 'http://localhost:1337';
+  const STRAPI_URL = import.meta.env.VITE_STRAPI_URL;
 
   export let grenade = null;
   export let onGrenadeLoad = (data) => {};

@@ -60,7 +60,7 @@
 
   if (browser) {
     window.addEventListener('message', (event) => {
-      if (event.origin !== 'http://localhost:5173') return;
+      if (event.origin !== import.meta.env.VITE_FRONTEND_URL) return;
       
       if (event.data.type === 'steam-login-success') {
         const { user, jwt } = event.data;

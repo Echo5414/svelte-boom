@@ -1,6 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 
-export const load = ({ url }) => {
+const STRAPI_URL = import.meta.env.VITE_STRAPI_URL;
+
+export const load = async ({ url }) => {
   const error = url.searchParams.get('error');
   
   if (error) {

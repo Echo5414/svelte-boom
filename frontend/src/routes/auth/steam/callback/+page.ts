@@ -2,6 +2,8 @@ import { redirect } from '@sveltejs/kit';
 import { login } from '$lib/stores/auth';
 import { browser } from '$app/environment';
 
+const STRAPI_URL = import.meta.env.VITE_STRAPI_URL;
+
 export const load = async ({ url, fetch }) => {
   const params = url.searchParams;
   const steamId = params.get('openid.identity')?.split('/').pop();
@@ -16,7 +18,7 @@ export const load = async ({ url, fetch }) => {
   }
 
   try {
-    const response = await fetch(`${import.meta.env.VITE_STRAPI_URL}/api/auth/steam/callback`, {
+    const response = await fetch(`${STRAPI_URL}/api/auth/steam/callback`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

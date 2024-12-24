@@ -13,6 +13,8 @@
 
   let grenadeData = null;
 
+  const STRAPI_URL = import.meta.env.VITE_STRAPI_URL;
+
   async function fetchGrenade(documentId: string) {
     const jwt = localStorage.getItem('jwt');
     if (!jwt) {
