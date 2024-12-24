@@ -27,11 +27,11 @@
   let isMinimized = false;
   
   onMount(() => {
-    // Get the stored sidebar state
+    // Get the stored sidebar state, default to 'true' (minimized) if not set
     const storedState = localStorage.getItem('sidebarMinimized');
-    isMinimized = storedState === 'true';
+    isMinimized = storedState === null ? true : storedState === 'true';
     
-    // Set initial width based on stored state
+    // Set initial width based on state
     sidebarWidth.set(isMinimized ? '72px' : '240px');
   });
 
@@ -66,7 +66,24 @@
         name: collection.name,
         value: collection.value,
         icon: collection.icon || null
-      }));
+      })).sort((a, b) => {
+        // Define the custom order using the API value field
+        const order = {
+          'NO_COLLECTION': 0,
+          'LIKED': 1
+        };
+        
+        // Use the order object to determine sort position
+        // Collections not in the order object will be sorted alphabetically after the ordered ones
+        const orderA = order[a.value] ?? 999;
+        const orderB = order[b.value] ?? 999;
+        
+        if (orderA === orderB) {
+          // If both items are not in the order object, sort alphabetically
+          return a.name.localeCompare(b.name);
+        }
+        return orderA - orderB;
+      });
 
       // Process teams data
       teams = teamsData.data.map(team => ({
@@ -86,9 +103,18 @@
         icon: type.icon || null,
         count: grenadeCounts[type.name] || 0
       })).sort((a, b) => {
-        if (a.name === 'All Grenades') return -1;
-        if (b.name === 'All Grenades') return 1;
-        return a.name.localeCompare(b.name);
+        // Define the custom order using the API value field
+        const order = {
+          'ALL_GRENADES': 0,
+          'SMOKE': 1,
+          'MOLOTOV': 2,
+          'FLASH': 3,
+          'HE': 4,
+          'DECOY': 5
+        };
+        
+        // Use the order object to determine sort position
+        return (order[a.value] ?? 999) - (order[b.value] ?? 999);
       });
 
       // Group maps by category
@@ -584,7 +610,7 @@
   .toggle-button {
     background-color: var(--color-surface-active);
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: 0; /* var(--radius-md) */
     color: var(--color-text-primary);
     cursor: pointer;
     padding: var(--spacing-2);
@@ -837,7 +863,7 @@
     border-radius: var(--radius-md);
     cursor: pointer;
     transition: all 0.2s;
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-sm);
     width: 100%;
     opacity: 0;
     transform: translateY(10px);
@@ -862,7 +888,7 @@
     user-select: none;
     background-color: var(--color-surface);
     border-bottom: 1px solid var(--color-border);
-    margin-top: var(--spacing-2);
+    margin-top: var(--spacing-1);
     padding: var(--spacing-2) var(--spacing-3);
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);
@@ -928,7 +954,7 @@
   .submit-button {
     background-color: var(--color-primary);
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: 0; /* var(--radius-md) */
     color: white;
     cursor: pointer;
     transition: all 0.3s ease;

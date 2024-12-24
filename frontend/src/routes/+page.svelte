@@ -8,6 +8,7 @@
   import { onMount } from 'svelte';
   import { searchTerm } from '$lib/stores/search';
   import { loadFilterData } from '$lib/stores/filters';
+  import { filters } from '$lib/stores/filters';
   
   let isSearchOpen = false;
   let searchInput;
@@ -136,7 +137,7 @@
 
 <main class="content">
   <header class="header">
-    <h1>All Maps</h1>
+    <h1>{$filters.map}</h1>
     
     <div class="header-actions">
       {#if headerVisible}
@@ -285,7 +286,7 @@
   .icon-button {
     background: var(--color-surface);
     border: none;
-    color: var(--color-text-primary);
+    color: var(--color-text-secondary);
     min-width: 38px;
     height: 38px;
     cursor: pointer;

@@ -270,7 +270,7 @@
   .toggle-button {
     background-color: var(--color-surface-active);
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: 0; /* var(--radius-md) */
     color: var(--color-text-primary);
     cursor: pointer;
     padding: var(--spacing-2);

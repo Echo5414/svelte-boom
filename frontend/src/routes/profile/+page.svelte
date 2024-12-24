@@ -4,10 +4,14 @@
   import { user } from '$lib/stores/auth';
   import GrenadeGrid from '$lib/components/GrenadeGrid.svelte';
   import { grenadeStore } from '$lib/stores/grenades';
+  import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
 
   const STRAPI_URL = 'http://localhost:1337';
 
-  let activeTab = 'published';
+  // Get initial tab from URL or default to 'published'
+  $: activeTab = $page.url.searchParams.get('tab') || 'published';
+
   let publishedGrenades = [];
   let draftGrenades = [];
   let likedGrenades = [];
@@ -100,7 +104,9 @@
 
   // Handle tab changes - now just switches the view
   function handleTabChange(tab: string) {
-    activeTab = tab;
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    goto(url.toString(), { replaceState: false });
   }
 
   // Expose loadAllData as a refresh function

@@ -67,106 +67,108 @@
   async function fetchGrenadeDetails() {
     const grenadeDocumentId = $page.params.id;
     const jwt = localStorage.getItem('jwt');
-    
-    if (!jwt) {
-        console.error('No JWT found');
-        return;
-    }
+    const headers = jwt ? { 'Authorization': `Bearer ${jwt}` } : {};
 
     try {
-        // Check if we're coming from the drafts section
-        const isDraft = window.location.pathname.includes('/drafts/') || 
-                       new URLSearchParams(window.location.search).get('status') === 'draft';
+      // Check if we're coming from the drafts section
+      const isDraft = window.location.pathname.includes('/drafts/') || 
+                     new URLSearchParams(window.location.search).get('status') === 'draft';
 
-        let response;
-        let data;
+      // Only allow draft access if user is authenticated
+      if (isDraft && !jwt) {
+        console.error('Authentication required to view drafts');
+        return;
+      }
 
-        if (isDraft) {
-            // If it's a draft, fetch both to ensure we get the latest version
-            const [publishedResponse, draftResponse] = await Promise.all([
-                fetch(
-                    `${STRAPI_URL}/api/grenades?filters[documentId][$eq]=${grenadeDocumentId}&status=published&populate=*`,
-                    { headers: { 'Authorization': `Bearer ${jwt}` } }
-                ),
-                fetch(
-                    `${STRAPI_URL}/api/grenades?filters[documentId][$eq]=${grenadeDocumentId}&status=draft&populate=*`,
-                    { headers: { 'Authorization': `Bearer ${jwt}` } }
-                )
-            ]);
+      let response;
+      let data;
 
-            const [publishedData, draftData] = await Promise.all([
-                publishedResponse.json(),
-                draftResponse.json()
-            ]);
+      if (isDraft && jwt) {
+        // If it's a draft, fetch both to ensure we get the latest version
+        const [publishedResponse, draftResponse] = await Promise.all([
+          fetch(
+            `${STRAPI_URL}/api/grenades?filters[documentId][$eq]=${grenadeDocumentId}&status=published&populate=*`,
+            { headers }
+          ),
+          fetch(
+            `${STRAPI_URL}/api/grenades?filters[documentId][$eq]=${grenadeDocumentId}&status=draft&populate=*`,
+            { headers }
+          )
+        ]);
 
-            // Prefer draft version when coming from drafts
-            if (draftData.data && draftData.data.length > 0) {
-                data = draftData;
-            } else if (publishedData.data && publishedData.data.length > 0) {
-                data = publishedData;
-            }
-        } else {
-            // For published grenades, just fetch the published version
-            response = await fetch(
-                `${STRAPI_URL}/api/grenades?filters[documentId][$eq]=${grenadeDocumentId}&status=published&populate=*`,
-                { headers: { 'Authorization': `Bearer ${jwt}` } }
-            );
-            data = await response.json();
+        const [publishedData, draftData] = await Promise.all([
+          publishedResponse.json(),
+          draftResponse.json()
+        ]);
+
+        // Prefer draft version when coming from drafts
+        if (draftData.data && draftData.data.length > 0) {
+          data = draftData;
+        } else if (publishedData.data && publishedData.data.length > 0) {
+          data = publishedData;
         }
+      } else {
+        // For published grenades, just fetch the published version
+        response = await fetch(
+          `${STRAPI_URL}/api/grenades?filters[documentId][$eq]=${grenadeDocumentId}&status=published&populate=*`,
+          { headers }
+        );
+        data = await response.json();
+      }
 
-        if (!data?.data?.[0]) {
-            console.error('No grenade data found');
-            return;
-        }
+      if (!data?.data?.[0]) {
+        console.error('No grenade data found');
+        return;
+      }
 
-        const grenadeData = data.data[0];
-        
-        grenade = {
-            id: grenadeData.id,
-            documentId: grenadeData.documentId,
-            title: grenadeData.title || 'Untitled',
-            author: grenadeData.user?.username || 'Unknown',
-            userId: grenadeData.user?.id,
-            likes: grenadeData.likes || 0,
-            views: grenadeData.views || 0,
-            type: grenadeData.type?.name || 'Unknown',
-            video: grenadeData.video ? `${STRAPI_URL}${grenadeData.video.url}` : null,
-            thumbnail: grenadeData.thumbnail 
-                ? `${STRAPI_URL}${grenadeData.thumbnail.url}` 
-                : '/images/default.jpg',
-            team: grenadeData.team?.name || 'Unknown',
-            technique: grenadeData.technique?.name || 'Unknown',
-            movement: grenadeData.movement?.name || 'Unknown',
-            precision: grenadeData.precision?.name || 'Unknown',
-            airTime: grenadeData.airtime || 0,
-            createdAt: grenadeData.createdAt || new Date().toISOString(),
-            lineup: grenadeData.lineup 
-                ? `${STRAPI_URL}${grenadeData.lineup.url}` 
-                : null,
-            map: grenadeData.map?.name || 'Unknown',
-            position: grenadeData.position || '',
-            likedBy: grenadeData.likedBy || []
-        };
+      const grenadeData = data.data[0];
+      
+      grenade = {
+        id: grenadeData.id,
+        documentId: grenadeData.documentId,
+        title: grenadeData.title || 'Untitled',
+        author: grenadeData.user?.username || 'Unknown',
+        userId: grenadeData.user?.id,
+        likes: grenadeData.likes || 0,
+        views: grenadeData.views || 0,
+        type: grenadeData.type?.name || 'Unknown',
+        video: grenadeData.video ? `${STRAPI_URL}${grenadeData.video.url}` : null,
+        thumbnail: grenadeData.thumbnail 
+          ? `${STRAPI_URL}${grenadeData.thumbnail.url}` 
+          : '/images/default.jpg',
+        team: grenadeData.team?.name || 'Unknown',
+        technique: grenadeData.technique?.name || 'Unknown',
+        movement: grenadeData.movement?.name || 'Unknown',
+        precision: grenadeData.precision?.name || 'Unknown',
+        airTime: grenadeData.airtime || 0,
+        createdAt: grenadeData.createdAt || new Date().toISOString(),
+        lineup: grenadeData.lineup 
+          ? `${STRAPI_URL}${grenadeData.lineup.url}` 
+          : null,
+        map: grenadeData.map?.name || 'Unknown',
+        position: grenadeData.position || '',
+        likedBy: grenadeData.likedBy || []
+      };
 
-        // Initialize like state
-        if ($user) {
-            isLiked = grenade.likedBy.some(u => u.id === $user.id);
-            console.log('Initial like state:', { 
-                userId: $user.id, 
-                likedBy: grenade.likedBy,
-                isLiked 
-            });
-        }
+      // Initialize like state
+      if ($user) {
+        isLiked = grenade.likedBy.some(u => u.id === $user.id);
+        console.log('Initial like state:', { 
+          userId: $user.id, 
+          likedBy: grenade.likedBy,
+          isLiked 
+        });
+      }
 
-        // Set initial active tab - prefer video if available, otherwise lineup
-        activeTab = grenade.video ? 'video' : (grenade.lineup ? 'lineup' : 'video');
+      // Set initial active tab - prefer video if available, otherwise lineup
+      activeTab = grenade.video ? 'video' : (grenade.lineup ? 'lineup' : 'video');
 
-        if (onGrenadeLoad) {
-            onGrenadeLoad(grenade);
-        }
+      if (onGrenadeLoad) {
+        onGrenadeLoad(grenade);
+      }
 
     } catch (error) {
-        console.error('Error fetching grenade details:', error);
+      console.error('Error fetching grenade details:', error);
     }
   }
 
